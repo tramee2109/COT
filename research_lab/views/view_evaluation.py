@@ -348,13 +348,25 @@ def render_evaluation(market_df, report_family_name, commodity_label, price_df):
         if reg_res and "error" not in reg_res:
             kr1, kr2, kr3, kr4 = st.columns(4)
             with kr1:
-                st.metric("Slope Coefficient (β)", f"{reg_res['beta']:+.4f}")
+                st.metric(
+                    "Slope Coefficient (β)", f"{reg_res['beta']:+.4f}",
+                    help="Công thức: Hệ số góc β từ phương trình hồi quy Return_{t+h} = α + β·Position_t + ε_t.\nMục đích: Đo lường mức độ nhạy cảm của lợi nhuận giá tương lai theo vị thế COT. β > 0 nghĩa là vị thế tăng dự báo giá tăng (momentum), β < 0 nghĩa là vị thế quá mua dự báo giá giảm (mean reversion)."
+                )
             with kr2:
-                st.metric("t-statistic (HAC)", f"{reg_res['t_statistic']:.2f}")
+                st.metric(
+                    "t-statistic (HAC)", f"{reg_res['t_statistic']:.2f}",
+                    help="Công thức: t = β / SE_HAC(β), sử dụng sai số chuẩn Newey-West điều chỉnh hiện tượng tự tương quan và phương sai sai số thay đổi.\nMục đích: |t| > 1.96 chỉ ra hệ số β có ý nghĩa thống kê ở mức tin cậy 95%."
+                )
             with kr3:
-                st.metric("p-value", f"{reg_res['p_value']:.4f}", delta="Statistically Significant" if reg_res['is_significant'] else "Not Significant")
+                st.metric(
+                    "p-value", f"{reg_res['p_value']:.4f}", delta="Statistically Significant" if reg_res['is_significant'] else "Not Significant",
+                    help="Công thức: Xác suất p-value của kiểm định giả thuyết không H0: β = 0.\nMục đích: p-value < 0.05 khẳng định mối liên hệ giữa vị thế COT và lợi nhuận giá tương lai là có thật về mặt thống kê, không phải do ngẫu nhiên."
+                )
             with kr4:
-                st.metric("R-Squared (R²)", f"{reg_res['r_squared'] * 100.0:.2f}%")
+                st.metric(
+                    "R-Squared (R²)", f"{reg_res['r_squared'] * 100.0:.2f}%",
+                    help="Công thức: R² = 1 - (SS_res / SS_tot).\nMục đích: Tỷ lệ phần trăm biến động của lợi nhuận tương lai được giải thích bởi vị thế COT. Trong thị trường tài chính, R² từ 1% đến 5% đã được xem là có giá trị thông tin đáng kể."
+                )
 
             st.markdown(f"""
             - **Intercept (α):** `{reg_res['alpha']:+.3f}%`

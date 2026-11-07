@@ -95,14 +95,26 @@ def render_trader_analysis(market_df, report_family_name, commodity_label, price
         latest = m_df.iloc[-1]
         c1, c2, c3, c4 = st.columns(4)
         with c1:
-            st.metric("Gross Longs", f"{latest[long_col]:,.0f} ctrs")
+            st.metric(
+                "Gross Longs", f"{latest[long_col]:,.0f} ctrs",
+                help="Công thức: Tổng số hợp đồng mua đang mở (Open Interest) của nhóm.\nMục đích: Đo lường tổng quy mô cam kết mua của nhóm trader này."
+            )
         with c2:
-            st.metric("Gross Shorts", f"{latest[short_col]:,.0f} ctrs")
+            st.metric(
+                "Gross Shorts", f"{latest[short_col]:,.0f} ctrs",
+                help="Công thức: Tổng số hợp đồng bán đang mở của nhóm.\nMục đích: Đo lường tổng mức độ phòng hộ bán hoặc cược giảm giá của nhóm."
+            )
         with c3:
-            st.metric("Net Position", f"{latest[net_col]:+,.0f} ctrs", delta=f"{latest[meta['pct_col']]:.1f}% of OI")
+            st.metric(
+                "Net Position", f"{latest[net_col]:+,.0f} ctrs", delta=f"{latest[meta['pct_col']]:.1f}% of OI",
+                help="Công thức: Net = Gross Longs - Gross Shorts.\nMục đích: Đo lường trạng thái ròng (Dương = Nghiêng về Mua, Âm = Nghiêng về Bán). Delta là tỷ lệ phần trăm so với toàn bộ Open Interest của thị trường."
+            )
         with c4:
             ls_ratio = (latest[long_col] / latest[short_col]) if latest[short_col] > 0 else 0
-            st.metric("Long / Short Ratio", f"{ls_ratio:.2f}x")
+            st.metric(
+                "Long / Short Ratio", f"{ls_ratio:.2f}x",
+                help="Công thức: Long/Short Ratio = Gross Longs / Gross Shorts.\nMục đích: Chỉ số đo sự mất cân bằng vị thế. Tỷ lệ > 1 cho thấy phe Long áp đảo; > 2x-3x cảnh báo trạng thái quá mua cực đoan."
+            )
 
         # 1. Long vs Short and Net Charts
         st.subheader("1. Gross Positions (Long vs Short) & Net Exposure")
@@ -422,11 +434,20 @@ def render_trader_analysis(market_df, report_family_name, commodity_label, price
 
             kc1, kc2, kc3, kc4 = st.columns(4)
             with kc1:
-                st.metric("13-Week Correlation (Tactical)", f"{c13:+.2f}" if pd.notna(c13) else "N/A")
+                st.metric(
+                    "13-Week Correlation (Tactical)", f"{c13:+.2f}" if pd.notna(c13) else "N/A",
+                    help="Công thức: Hệ số tương quan Pearson rolling trong 13 tuần gần nhất giữa vị thế của 2 nhóm.\nMục đích: Đo lường mối quan hệ tương hỗ ngắn hạn (chiến thuật). Giá trị âm mạnh (-0.8 đến -1.0) xác nhận một bên đang hấp thụ lệnh đối ứng của bên kia."
+                )
             with kc2:
-                st.metric("26-Week Correlation (Medium-Term)", f"{c26:+.2f}" if pd.notna(c26) else "N/A")
+                st.metric(
+                    "26-Week Correlation (Medium-Term)", f"{c26:+.2f}" if pd.notna(c26) else "N/A",
+                    help="Công thức: Hệ số tương quan Pearson rolling trong 26 tuần (nửa năm).\nMục đích: Đánh giá xu hướng trung hạn. Nếu tương quan đảo chiều từ âm sang dương, cấu trúc thị trường đang có sự biến dạng."
+                )
             with kc3:
-                st.metric("52-Week Correlation (Structural)", f"{c52:+.2f}" if pd.notna(c52) else "N/A")
+                st.metric(
+                    "52-Week Correlation (Structural)", f"{c52:+.2f}" if pd.notna(c52) else "N/A",
+                    help="Công thức: Hệ số tương quan Pearson rolling trong 52 tuần (1 năm).\nMục đích: Đo lường cấu trúc cơ bản dài hạn giữa dòng tiền đầu cơ và phòng hộ sản xuất."
+                )
             with kc4:
                 if pd.notna(c52):
                     if c52 <= -0.6:
@@ -437,7 +458,10 @@ def render_trader_analysis(market_df, report_family_name, commodity_label, price
                         rel_eval = "Decoupled / Transition"
                 else:
                     rel_eval = "Insufficient Data"
-                st.metric("Structural State", rel_eval)
+                st.metric(
+                    "Structural State", rel_eval,
+                    help="Đánh giá trạng thái cấu trúc thị trường dựa trên tương quan 52W:\n- Inverse Hedging: Đối ứng bình thường (Hedger bán đối ứng với Speculator mua).\n- Positive Synchronization: Dấu hiệu bất thường khi cả 2 cùng mua hoặc cùng bán.\n- Decoupled: Tách rời, không có mối quan hệ rõ rệt."
+                )
 
             fig_corr = go.Figure()
             fig_corr.add_trace(go.Scatter(

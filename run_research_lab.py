@@ -59,6 +59,7 @@ from research_lab.views.view_statistics import render_statistics
 from research_lab.views.view_evaluation import render_evaluation
 from research_lab.views.view_knowledge import render_knowledge_base
 from research_lab.views.view_reports import render_reports
+from research_lab.views.view_data_center import render_data_center
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 1. DATA INGESTION & REGISTRY INITIALIZATION (CACHED)
@@ -88,7 +89,8 @@ MODULES = [
     "5. Statistical Research & Tests",
     "6. COT & Price Relationship Lab",
     "7. Applications & Knowledge Base",
-    "8. Research Report Workspace"
+    "8. Research Report Workspace",
+    "9. Data Center & Export Hub"
 ]
 
 selected_module = st.sidebar.radio("Navigation:", MODULES, index=0)
@@ -185,4 +187,7 @@ elif selected_module == "7. Applications & Knowledge Base":
 
 elif selected_module == "8. Research Report Workspace":
     render_reports(commodity_label, report_family_name, contract_code, market_df, price_df)
+
+elif selected_module == "9. Data Center & Export Hub":
+    render_data_center(market_df, report_family_name, commodity_label, price_df, df_disagg, df_tff)
 
