@@ -105,8 +105,17 @@ def render_trader_analysis(market_df, report_family_name, commodity_label, price
         cohort_long_traders = latest.get(meta["trader_cnt_col"], np.nan) if meta["trader_cnt_col"] else np.nan
         pct_traders_share = (float(cohort_long_traders) / float(tot_traders) * 100.0) if (pd.notna(tot_traders) and pd.notna(cohort_long_traders) and float(tot_traders) > 0) else np.nan
 
-        # Top Metric Row
-        c1, c2, c3, c4 = st.columns(4)
+        # Spreading Contracts & % of OI (if available for cohort)
+        spread_val = latest.get(meta["spread_col"], 0.0) if meta["spread_col"] and meta["spread_col"] in m_df.columns else 0.0
+        pct_oi_spread = (spread_val / tot_oi * 100.0) if (pd.notna(tot_oi) and tot_oi > 0 and pd.notna(spread_val)) else 0.0
+
+        # Top Metric Row (5 columns to include Spreading)
+        if meta["spread_col"] and meta["spread_col"] in m_df.columns:
+            c1, c2, cspr, c3, c4 = st.columns(5)
+        else:
+            c1, c2, c3, c4 = st.columns(4)
+            cspr = None
+
         with c1:
             st.metric(
                 "Gross Longs", f"{latest[long_col]:,.0f} ctrs",
@@ -119,6 +128,13 @@ def render_trader_analysis(market_df, report_family_name, commodity_label, price
                 delta=f"{pct_oi_short:.1f}% of Total OI" if pd.notna(pct_oi_short) else None,
                 help="- **Formula:** Gross Short Contracts and % of Total Market Open Interest:\n  Pct_Short = (Gross Shorts / Total OI) * 100%\n\n- **Purpose:** Measures the exact percentage share of all market open interest controlled by this cohort on the short side."
             )
+        if cspr is not None:
+            with cspr:
+                st.metric(
+                    "Spreading", f"{spread_val:,.0f} ctrs",
+                    delta=f"{pct_oi_spread:.1f}% of Total OI",
+                    help="- **Formula:** Spreading = Simultaneous Long and Short positions in different calendar contract months.\n\n- **Purpose:** Measures calendar spread/arbitrage exposure that is non-directional. Note: % Long + % Spreading contributes to total market OI."
+                )
         with c3:
             st.metric(
                 "Net Position", f"{latest[net_col]:+,.0f} ctrs",
@@ -135,12 +151,13 @@ def render_trader_analysis(market_df, report_family_name, commodity_label, price
 
         # Market Share Breakdown Banner
         if pd.notna(tot_oi) and tot_oi > 0:
+            spread_banner_text = f"&nbsp;•&nbsp; Spreading: <b style='color: #ffa502;'>{pct_oi_spread:.1f}%</b> ({spread_val:,.0f} ctrs)" if (meta["spread_col"] and pd.notna(spread_val) and spread_val > 0) else ""
             st.markdown(f"""
             <div style="background: rgba(30, 39, 56, 0.6); border: 1px solid #2f3640; border-radius: 6px; padding: 10px 14px; margin: 10px 0 16px 0; font-size: 13px;">
                 📊 <b>Market Share Breakdown for {sel_cat_name}:</b> &nbsp;|&nbsp; 
                 Total Market OI: <b>{tot_oi:,.0f} contracts</b> &nbsp;•&nbsp; 
                 Long Share: <b style="color: #2ed573;">{pct_oi_long:.1f}%</b> &nbsp;•&nbsp; 
-                Short Share: <b style="color: #ff4757;">{pct_oi_short:.1f}%</b> &nbsp;•&nbsp; 
+                Short Share: <b style="color: #ff4757;">{pct_oi_short:.1f}%</b> {spread_banner_text} &nbsp;•&nbsp; 
                 Net Exposure: <b style="color: {'#2ed573' if pct_oi_net >= 0 else '#ff4757'};">{pct_oi_net:+.1f}% of OI</b>
                 {f"&nbsp;•&nbsp; Participating Entities: <b>{int(cohort_long_traders)} entities ({pct_traders_share:.1f}% of all reporting traders)</b>" if pd.notna(pct_traders_share) else ""}
             </div>
