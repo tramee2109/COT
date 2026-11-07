@@ -98,22 +98,22 @@ def render_statistics(market_df, report_family_name, commodity_label, df_all_dis
         with c_adf1:
             st.metric(
                 "ADF Test Statistic", f"{adf_res['adf_statistic']:.3f}",
-                help="Công thức: Giá trị thống kê kiểm định t từ phương trình hồi quy ADF:\nΔy_t = α + β*t + γ*y_{t-1} + Σ δ_i*Δy_{t-i} + ε_t.\nMục đích: Kiểm định xem chuỗi có nghiệm đơn vị (Unit Root) hay không. Càng âm sâu dưới giá trị tới hạn (Critical Value) thì chuỗi càng dừng (stationary)."
+                help="• Formula: t-statistic from ADF regression model:\n  Δy_t = α + β·t + γ·y_{t-1} + Σ δ_i·Δy_{t-i} + ε_t\n• Purpose: Tests the null hypothesis H0 of a unit root (non-stationary series). Values more negative than critical thresholds reject H0."
             )
         with c_adf2:
             st.metric(
                 "p-value", f"{adf_res['p_value']:.4f}",
-                help="Công thức: Xác suất MacKinnon p-value đối với giả thuyết không (H0: Chuỗi không dừng - có unit root).\nMục đích: Nếu p-value < 0.05, bác bỏ giả thuyết H0, kết luận chuỗi có tính dừng (Stationary), thích hợp để đưa vào các mô hình định lượng mà không sợ tương quan giả."
+                help="• Formula: MacKinnon approximate p-value for the unit root null hypothesis.\n• Purpose: If p < 0.05, rejects unit root, confirming stationary time-series suitable for robust regression without spurious correlation."
             )
         with c_adf3:
             st.metric(
                 "5% Critical Value", f"{adf_res['crit_5pct']:.3f}",
-                help="Giá trị ngưỡng tới hạn ở mức ý nghĩa thống kê 5%. Nếu ADF Statistic < Critical Value này, chuỗi đạt tính dừng ở độ tin cậy 95%."
+                help="• Threshold: Statistical threshold at 95% confidence level (α = 0.05).\n• Purpose: Rejection boundary; ADF statistic must fall below this value to confirm stationarity."
             )
         with c_adf4:
             st.metric(
                 "Stationarity Status", "Stationary" if adf_res['is_stationary_5pct'] else "Non-Stationary",
-                help="Kết luận tính dừng (Stationary vs Non-Stationary). Dữ liệu vị thế gốc (Levels) thường không dừng, còn biến thiên hàng tuần (Δ Change) luôn có tính dừng."
+                help="• Econometric Status:\n  - Stationary: Constant mean, variance, and autocorrelation structure over time.\n  - Non-Stationary: Strong memory/trend; requires first differencing (Δ) before modeling."
             )
 
         st.info(f"**Econometric Conclusion:** {adf_res['conclusion']}. Note: Level positioning typically exhibits strong autocorrelation (unit root present), meaning classical regression on raw levels can yield spurious correlations. Differenced weekly changes should be used for return regression.")

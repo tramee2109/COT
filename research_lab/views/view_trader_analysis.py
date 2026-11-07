@@ -97,23 +97,23 @@ def render_trader_analysis(market_df, report_family_name, commodity_label, price
         with c1:
             st.metric(
                 "Gross Longs", f"{latest[long_col]:,.0f} ctrs",
-                help="Công thức: Tổng số hợp đồng mua đang mở (Open Interest) của nhóm.\nMục đích: Đo lường tổng quy mô cam kết mua của nhóm trader này."
+                help="• Formula: Sum of all open long futures contracts held by this cohort.\n• Purpose: Measures aggregate bullish commitment and upside positioning capacity."
             )
         with c2:
             st.metric(
                 "Gross Shorts", f"{latest[short_col]:,.0f} ctrs",
-                help="Công thức: Tổng số hợp đồng bán đang mở của nhóm.\nMục đích: Đo lường tổng mức độ phòng hộ bán hoặc cược giảm giá của nhóm."
+                help="• Formula: Sum of all open short futures contracts held by this cohort.\n• Purpose: Measures aggregate hedging intensity or downside speculative interest."
             )
         with c3:
             st.metric(
                 "Net Position", f"{latest[net_col]:+,.0f} ctrs", delta=f"{latest[meta['pct_col']]:.1f}% of OI",
-                help="Công thức: Net = Gross Longs - Gross Shorts.\nMục đích: Đo lường trạng thái ròng (Dương = Nghiêng về Mua, Âm = Nghiêng về Bán). Delta là tỷ lệ phần trăm so với toàn bộ Open Interest của thị trường."
+                help="• Formula: Net = Gross Longs - Gross Shorts\n• Purpose: Quantifies net market exposure (Positive = Net Long / Bullish, Negative = Net Short / Bearish). Delta indicates net position normalized as % of total Open Interest."
             )
         with c4:
             ls_ratio = (latest[long_col] / latest[short_col]) if latest[short_col] > 0 else 0
             st.metric(
                 "Long / Short Ratio", f"{ls_ratio:.2f}x",
-                help="Công thức: Long/Short Ratio = Gross Longs / Gross Shorts.\nMục đích: Chỉ số đo sự mất cân bằng vị thế. Tỷ lệ > 1 cho thấy phe Long áp đảo; > 2x-3x cảnh báo trạng thái quá mua cực đoan."
+                help="• Formula: Long / Short Ratio = Gross Longs / Gross Shorts\n• Purpose: Evaluates cohort directional asymmetry. Ratios > 2.0x-3.0x signal crowded long positioning and vulnerability to liquidation."
             )
 
         # 1. Long vs Short and Net Charts
@@ -436,17 +436,17 @@ def render_trader_analysis(market_df, report_family_name, commodity_label, price
             with kc1:
                 st.metric(
                     "13-Week Correlation (Tactical)", f"{c13:+.2f}" if pd.notna(c13) else "N/A",
-                    help="Công thức: Hệ số tương quan Pearson rolling trong 13 tuần gần nhất giữa vị thế của 2 nhóm.\nMục đích: Đo lường mối quan hệ tương hỗ ngắn hạn (chiến thuật). Giá trị âm mạnh (-0.8 đến -1.0) xác nhận một bên đang hấp thụ lệnh đối ứng của bên kia."
+                    help="• Formula: Rolling 13-week Pearson correlation coefficient r between cohort positions.\n• Purpose: Measures short-term tactical co-movement. Deeply negative values (-0.8 to -1.0) confirm direct tactical liquidity offset."
                 )
             with kc2:
                 st.metric(
                     "26-Week Correlation (Medium-Term)", f"{c26:+.2f}" if pd.notna(c26) else "N/A",
-                    help="Công thức: Hệ số tương quan Pearson rolling trong 26 tuần (nửa năm).\nMục đích: Đánh giá xu hướng trung hạn. Nếu tương quan đảo chiều từ âm sang dương, cấu trúc thị trường đang có sự biến dạng."
+                    help="• Formula: Rolling 26-week (half-year) Pearson correlation coefficient r.\n• Purpose: Evaluates medium-term structural synchronization or divergence across market regimes."
                 )
             with kc3:
                 st.metric(
                     "52-Week Correlation (Structural)", f"{c52:+.2f}" if pd.notna(c52) else "N/A",
-                    help="Công thức: Hệ số tương quan Pearson rolling trong 52 tuần (1 năm).\nMục đích: Đo lường cấu trúc cơ bản dài hạn giữa dòng tiền đầu cơ và phòng hộ sản xuất."
+                    help="• Formula: Rolling 52-week (1-year) Pearson correlation coefficient r.\n• Purpose: Quantifies foundational relationship between speculative liquidity and commercial hedging."
                 )
             with kc4:
                 if pd.notna(c52):
@@ -460,7 +460,7 @@ def render_trader_analysis(market_df, report_family_name, commodity_label, price
                     rel_eval = "Insufficient Data"
                 st.metric(
                     "Structural State", rel_eval,
-                    help="Đánh giá trạng thái cấu trúc thị trường dựa trên tương quan 52W:\n- Inverse Hedging: Đối ứng bình thường (Hedger bán đối ứng với Speculator mua).\n- Positive Synchronization: Dấu hiệu bất thường khi cả 2 cùng mua hoặc cùng bán.\n- Decoupled: Tách rời, không có mối quan hệ rõ rệt."
+                    help="• Criteria based on 52W Correlation:\n  - Inverse Hedging (r <= -0.6): Healthy commercial absorption of speculative flows.\n  - Positive Synchronization (r >= +0.3): Anomalous co-trending (both buying or both selling).\n  - Decoupled (-0.6 < r < +0.3): Neutral or transitional liquidity state."
                 )
 
             fig_corr = go.Figure()

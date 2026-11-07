@@ -299,30 +299,34 @@ def render_positioning_dynamics(market_df, report_family_name, commodity_label, 
         lat_z = src_df[z_col].iloc[-1]
         lat_pct = src_df[pct_col].iloc[-1]
         
-        with st.expander("ℹ️ Công thức tính & Mục đích sử dụng: Z-Score & Percentile Extremes", expanded=False):
+        with st.expander("ℹ️ Formula & Quantitative Objectives: Z-Score & Percentile Extremes", expanded=False):
             st.markdown(r"""
             ##### 1. Rolling Z-Score
-            - **Công thức:** 
+            - **Formula:** 
               $$Z_t = \frac{Pos_t - \mu_{t, W}}{\sigma_{t, W}}$$
-              *Trong đó $Pos_t$ là vị thế ròng Managed Money tuần $t$, $\mu_{t, W}$ và $\sigma_{t, W}$ là giá trị trung bình và độ lệch chuẩn rolling trong cửa sổ $W$ tuần (mặc định 52 tuần).*
-            - **Mục đích:** Chuẩn hóa vị thế về số độ lệch chuẩn ($\sigma$). Giúp so sánh mức độ căng cứng của vị thế độc lập với quy mô tăng trưởng của thị trường. Ngưỡng $|Z| \ge 2.0\sigma$ phản ánh trạng thái quá mua/quá bán thống kê (chỉ xảy ra ~5% thời gian).
+              *Where $Pos_t$ represents Managed Money net positioning at week $t$; $\mu_{t, W}$ and $\sigma_{t, W}$ denote rolling sample mean and standard deviation over lookback window $W$ (default: 52 weeks).*
+            - **Quantitative Purpose:** 
+              - Standardizes positioning across time regimes independent of raw market size growth.
+              - Identifies statistical distribution boundaries: $|Z| \ge 2.0\sigma$ represents tail events occurring in roughly ~5% of historical distribution, warning of crowded extension or exhaustion.
 
             ##### 2. Rolling Percentile (COT Index)
-            - **Công thức:**
+            - **Formula:**
               $$Percentile_t = \frac{Pos_t - \min(Pos_W)}{\max(Pos_W) - \min(Pos_W)} \times 100\%$$
-            - **Mục đích:** Xếp hạng vị thế hiện tại so với biên độ cao nhất / thấp nhất trong chu kỳ $W$ tuần. Ngưỡng $>90\%$ báo hiệu vị thế gom mua chạm trần lịch sử, $<10\%$ báo hiệu phe bán đã ép cạn kiệt.
+            - **Quantitative Purpose:**
+              - Evaluates current positioning rank bounded within $[0\%, 100\%]$ relative to rolling multi-year range.
+              - Levels $>90\%$ highlight historical bullish saturation; levels $<10\%$ identify heavy short crowding.
             """)
 
         col_z1, col_z2 = st.columns(2)
         with col_z1:
             st.metric(
                 f"Rolling Z-Score ({lookback}W)", f"{lat_z:+.2f} Std",
-                help="Công thức: (Vị thế hiện tại - Trung bình W tuần) / Độ lệch chuẩn W tuần.\nMục đích: Đo độ lệch chuẩn hóa. Z > +2: Quá mua cực đoan; Z < -2: Quá bán cực đoan."
+                help="• Formula: Z = (Current Position - Rolling Mean) / Rolling Std Dev over W weeks.\n• Purpose: Standardizes positioning into standard deviations (σ). Thresholds |Z| >= 2.0σ identify statistical overextension."
             )
         with col_z2:
             st.metric(
                 f"Rolling Percentile ({lookback}W)", f"{lat_pct:.1f}%",
-                help="Công thức: (Vị thế - Min) / (Max - Min) * 100% trong W tuần.\nMục đích: Xếp hạng vị trí tương đối của vị thế trong chu kỳ."
+                help="• Formula: (Position - Min) / (Max - Min) * 100% over rolling W weeks.\n• Purpose: Ranks positioning percentile. Values > 90% reflect historical bullish crowding, < 10% reflect bearish crowding."
             )
 
         st.markdown(f"""
