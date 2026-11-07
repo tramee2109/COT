@@ -321,12 +321,12 @@ def render_positioning_dynamics(market_df, report_family_name, commodity_label, 
         with col_z1:
             st.metric(
                 f"Rolling Z-Score ({lookback}W)", f"{lat_z:+.2f} Std",
-                help="• Formula: Z = (Current Position - Rolling Mean) / Rolling Std Dev over W weeks.\n• Purpose: Standardizes positioning into standard deviations (σ). Thresholds |Z| >= 2.0σ identify statistical overextension."
+                help="- **Formula:** Z = (Position - Rolling Mean) / Rolling Std Dev over W weeks.\n\n- **Purpose:** Standardizes positioning into standard deviations (σ). |Z| >= 2.0σ identifies statistical overextension."
             )
         with col_z2:
             st.metric(
                 f"Rolling Percentile ({lookback}W)", f"{lat_pct:.1f}%",
-                help="• Formula: (Position - Min) / (Max - Min) * 100% over rolling W weeks.\n• Purpose: Ranks positioning percentile. Values > 90% reflect historical bullish crowding, < 10% reflect bearish crowding."
+                help="- **Formula:** (Position - Min) / (Max - Min) * 100% over W weeks.\n\n- **Purpose:** Ranks positioning percentile [0%, 100%]. > 90% reflects bullish crowding, < 10% reflects bearish crowding."
             )
 
         st.markdown(f"""

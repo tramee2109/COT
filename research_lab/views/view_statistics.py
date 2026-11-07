@@ -98,22 +98,22 @@ def render_statistics(market_df, report_family_name, commodity_label, df_all_dis
         with c_adf1:
             st.metric(
                 "ADF Test Statistic", f"{adf_res['adf_statistic']:.3f}",
-                help="• Formula: t-statistic from ADF regression model:\n  Δy_t = α + β·t + γ·y_{t-1} + Σ δ_i·Δy_{t-i} + ε_t\n• Purpose: Tests the null hypothesis H0 of a unit root (non-stationary series). Values more negative than critical thresholds reject H0."
+                help="- **Formula:** t-statistic from ADF regression model:\n  Δy_t = α + β·t + γ·y_{t-1} + Σ δ_i·Δy_{t-i} + ε_t\n\n- **Purpose:** Tests null hypothesis H0 of a unit root (non-stationary series). Values below critical thresholds reject H0."
             )
         with c_adf2:
             st.metric(
                 "p-value", f"{adf_res['p_value']:.4f}",
-                help="• Formula: MacKinnon approximate p-value for the unit root null hypothesis.\n• Purpose: If p < 0.05, rejects unit root, confirming stationary time-series suitable for robust regression without spurious correlation."
+                help="- **Formula:** MacKinnon approximate p-value for the unit root null hypothesis.\n\n- **Purpose:** If p < 0.05, rejects unit root, confirming stationary time-series suitable for robust regression without spurious correlation."
             )
         with c_adf3:
             st.metric(
                 "5% Critical Value", f"{adf_res['crit_5pct']:.3f}",
-                help="• Threshold: Statistical threshold at 95% confidence level (α = 0.05).\n• Purpose: Rejection boundary; ADF statistic must fall below this value to confirm stationarity."
+                help="- **Threshold:** Statistical boundary at 95% confidence level (α = 0.05).\n\n- **Purpose:** ADF statistic must fall below this value to confirm stationarity."
             )
         with c_adf4:
             st.metric(
                 "Stationarity Status", "Stationary" if adf_res['is_stationary_5pct'] else "Non-Stationary",
-                help="• Econometric Status:\n  - Stationary: Constant mean, variance, and autocorrelation structure over time.\n  - Non-Stationary: Strong memory/trend; requires first differencing (Δ) before modeling."
+                help="- **Stationary:** Constant mean, variance, and autocorrelation over time.\n\n- **Non-Stationary:** Strong persistence/trend; requires first differencing (Δ) before modeling."
             )
 
         st.info(f"**Econometric Conclusion:** {adf_res['conclusion']}. Note: Level positioning typically exhibits strong autocorrelation (unit root present), meaning classical regression on raw levels can yield spurious correlations. Differenced weekly changes should be used for return regression.")
