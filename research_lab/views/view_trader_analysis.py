@@ -93,28 +93,58 @@ def render_trader_analysis(market_df, report_family_name, commodity_label, price
 
         # Latest values
         latest = m_df.iloc[-1]
+        tot_oi = latest.get("Open_Interest_All", np.nan)
+        
+        # Calculate percentages of Total Open Interest
+        pct_oi_long = (latest[long_col] / tot_oi * 100.0) if pd.notna(tot_oi) and tot_oi > 0 else np.nan
+        pct_oi_short = (latest[short_col] / tot_oi * 100.0) if pd.notna(tot_oi) and tot_oi > 0 else np.nan
+        pct_oi_net = latest.get(meta["pct_col"], (latest[net_col] / tot_oi * 100.0) if pd.notna(tot_oi) and tot_oi > 0 else np.nan)
+
+        # Participation share in reporting traders
+        tot_traders = latest.get("Traders_Tot_All", np.nan)
+        cohort_long_traders = latest.get(meta["trader_cnt_col"], np.nan) if meta["trader_cnt_col"] else np.nan
+        pct_traders_share = (float(cohort_long_traders) / float(tot_traders) * 100.0) if (pd.notna(tot_traders) and pd.notna(cohort_long_traders) and float(tot_traders) > 0) else np.nan
+
+        # Top Metric Row
         c1, c2, c3, c4 = st.columns(4)
         with c1:
             st.metric(
                 "Gross Longs", f"{latest[long_col]:,.0f} ctrs",
-                help="- **Formula:** Sum of all open long futures contracts held by this cohort.\n\n- **Purpose:** Measures aggregate bullish commitment and upside positioning capacity."
+                delta=f"{pct_oi_long:.1f}% of Total OI" if pd.notna(pct_oi_long) else None,
+                help="- **Formula:** Gross Long Contracts and % of Total Market Open Interest:\n  Pct_Long = (Gross Longs / Total OI) * 100%\n\n- **Purpose:** Measures the exact percentage share of all market open interest controlled by this cohort on the long side."
             )
         with c2:
             st.metric(
                 "Gross Shorts", f"{latest[short_col]:,.0f} ctrs",
-                help="- **Formula:** Sum of all open short futures contracts held by this cohort.\n\n- **Purpose:** Measures aggregate hedging intensity or downside speculative interest."
+                delta=f"{pct_oi_short:.1f}% of Total OI" if pd.notna(pct_oi_short) else None,
+                help="- **Formula:** Gross Short Contracts and % of Total Market Open Interest:\n  Pct_Short = (Gross Shorts / Total OI) * 100%\n\n- **Purpose:** Measures the exact percentage share of all market open interest controlled by this cohort on the short side."
             )
         with c3:
             st.metric(
-                "Net Position", f"{latest[net_col]:+,.0f} ctrs", delta=f"{latest[meta['pct_col']]:.1f}% of OI",
-                help="- **Formula:** Net = Gross Longs - Gross Shorts\n\n- **Purpose:** Quantifies net directional bias (Positive = Net Long, Negative = Net Short). Delta reflects position normalized as % of total Open Interest."
+                "Net Position", f"{latest[net_col]:+,.0f} ctrs",
+                delta=f"{pct_oi_net:+.1f}% of Total OI" if pd.notna(pct_oi_net) else None,
+                help="- **Formula:** Net Contracts and Net Share of Open Interest:\n  Net = Gross Longs - Gross Shorts\n  Pct_Net_OI = (Net / Total OI) * 100%\n\n- **Purpose:** Quantifies the net directional tilt as a percentage of the entire market. Positive indicates net buying dominance; negative indicates net selling dominance."
             )
         with c4:
             ls_ratio = (latest[long_col] / latest[short_col]) if latest[short_col] > 0 else 0
             st.metric(
                 "Long / Short Ratio", f"{ls_ratio:.2f}x",
-                help="- **Formula:** Long / Short Ratio = Gross Longs / Gross Shorts\n\n- **Purpose:** Measures positioning imbalance. Ratios > 2.0x-3.0x signal crowded long positioning and liquidation vulnerability."
+                delta=f"{pct_traders_share:.1f}% of Active Traders" if pd.notna(pct_traders_share) else None,
+                help="- **Formula:** Long/Short Ratio = Gross Longs / Gross Shorts.\n  Delta indicates this cohort's share among all reporting entities (Cohort Long Traders / Total Reporting Traders * 100%).\n\n- **Purpose:** Evaluates both positioning leverage asymmetry and market participant breadth."
             )
+
+        # Market Share Breakdown Banner
+        if pd.notna(tot_oi) and tot_oi > 0:
+            st.markdown(f"""
+            <div style="background: rgba(30, 39, 56, 0.6); border: 1px solid #2f3640; border-radius: 6px; padding: 10px 14px; margin: 10px 0 16px 0; font-size: 13px;">
+                📊 <b>Market Share Breakdown for {sel_cat_name}:</b> &nbsp;|&nbsp; 
+                Total Market OI: <b>{tot_oi:,.0f} contracts</b> &nbsp;•&nbsp; 
+                Long Share: <b style="color: #2ed573;">{pct_oi_long:.1f}%</b> &nbsp;•&nbsp; 
+                Short Share: <b style="color: #ff4757;">{pct_oi_short:.1f}%</b> &nbsp;•&nbsp; 
+                Net Exposure: <b style="color: {'#2ed573' if pct_oi_net >= 0 else '#ff4757'};">{pct_oi_net:+.1f}% of OI</b>
+                {f"&nbsp;•&nbsp; Participating Entities: <b>{int(cohort_long_traders)} entities ({pct_traders_share:.1f}% of all reporting traders)</b>" if pd.notna(pct_traders_share) else ""}
+            </div>
+            """, unsafe_allow_html=True)
 
         # 1. Long vs Short and Net Charts
         st.subheader("1. Gross Positions (Long vs Short) & Net Exposure")
@@ -177,20 +207,48 @@ def render_trader_analysis(market_df, report_family_name, commodity_label, price
         )
         st.plotly_chart(fig_ls, use_container_width=True)
 
-        # 2. Trader Counts and Concentration
-        if meta["trader_cnt_col"] and meta["trader_cnt_col"] in m_df.columns:
-            st.subheader("2. Breadth of Participation: Active Reporting Trader Counts")
-            fig_tc = go.Figure()
-            fig_tc.add_trace(go.Bar(
-                x=m_df['report_date'], y=m_df[meta["trader_cnt_col"]],
-                marker_color=meta['color'], opacity=0.7, name='Reporting Trader Count'
-            ))
-            fig_tc.update_layout(
-                template='plotly_dark', height=240,
-                margin=dict(l=20, r=20, t=20, b=20),
-                yaxis_title="Number of Filing Entities"
+        # 2. Trader Counts and Participation Share
+        st.subheader("2. Breadth of Participation & Historical Market Share (% of OI)")
+        
+        col_c_oi1, col_c_oi2 = st.columns(2)
+        with col_c_oi1:
+            fig_pct_oi = go.Figure()
+            if 'Open_Interest_All' in m_df.columns and m_df['Open_Interest_All'].iloc[-1] > 0:
+                p_long = m_df[long_col] / m_df['Open_Interest_All'] * 100.0
+                p_short = m_df[short_col] / m_df['Open_Interest_All'] * 100.0
+                fig_pct_oi.add_trace(go.Scatter(
+                    x=m_df['report_date'], y=p_long, mode='lines',
+                    name='Long Share (% of OI)', line=dict(color=COLORS['long'], width=2)
+                ))
+                fig_pct_oi.add_trace(go.Scatter(
+                    x=m_df['report_date'], y=p_short, mode='lines',
+                    name='Short Share (% of OI)', line=dict(color=COLORS['short'], width=2)
+                ))
+            fig_pct_oi.update_layout(
+                template='plotly_dark', height=260,
+                margin=dict(l=20, r=20, t=30, b=20),
+                yaxis_title="% of Total Open Interest",
+                title=f"Historical Market Share of OI ({sel_cat_name})",
+                legend=dict(orientation='h', y=1.1, x=0)
             )
-            st.plotly_chart(fig_tc, use_container_width=True)
+            st.plotly_chart(fig_pct_oi, use_container_width=True)
+
+        with col_c_oi2:
+            if meta["trader_cnt_col"] and meta["trader_cnt_col"] in m_df.columns:
+                fig_tc = go.Figure()
+                fig_tc.add_trace(go.Bar(
+                    x=m_df['report_date'], y=m_df[meta["trader_cnt_col"]],
+                    marker_color=meta['color'], opacity=0.75, name='Reporting Trader Count'
+                ))
+                fig_tc.update_layout(
+                    template='plotly_dark', height=260,
+                    margin=dict(l=20, r=20, t=30, b=20),
+                    yaxis_title="Number of Filing Entities",
+                    title="Active Reporting Trader Entities (Long Side)"
+                )
+                st.plotly_chart(fig_tc, use_container_width=True)
+            else:
+                st.info("Trader count breakdown is reported by CFTC for reportable commercial and speculative categories.")
 
     # ─────────────────────────────────────────────────────────────────────────
     # TAB 2: MULTI-TRADER COMPARISON
