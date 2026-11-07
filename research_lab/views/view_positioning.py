@@ -114,6 +114,14 @@ def render_positioning_dynamics(market_df, report_family_name, commodity_label, 
         )
         st.plotly_chart(fig_decomp, use_container_width=True)
 
+        with st.expander("💡 Chart Purpose & Key Analytical Takeaways (Weekly Flow Decomposition)", expanded=False):
+            st.markdown("""
+            - **Primary Objective:** Dissect weekly net positioning shifts into 4 fundamental structural flows: **Long Accumulation**, **Short Covering**, **Long Liquidation**, and **New Short Formation**, aligned with contemporaneous weekly price returns.
+            - **High-Quality Bullish Flow (Accumulation):** When Net increases primarily due to fresh Long buying ($\Delta \text{Long} > 0$) rather than short covering, the rally is fueled by proactive new institutional capital.
+            - **Low-Quality Bullish Flow (Short Covering):** Net increases driven predominantly by $\Delta \text{Short} < 0$ often represent temporary short squeezes prone to quick reversal once shorts finish covering.
+            - **Bearish Warning (Liquidation vs New Shorts):** Aggressive new short formation ($\Delta \text{Short} > 0$) reflects strong conviction bets on falling prices, while long liquidation reflects passive stop-outs.
+            """)
+
         lat = recent_df.iloc[-1]
         c1, c2, c3, c4 = st.columns(4)
         with c1:
@@ -295,6 +303,13 @@ def render_positioning_dynamics(market_df, report_family_name, commodity_label, 
             legend=dict(orientation='h', y=1.05, x=0)
         )
         st.plotly_chart(fig_z, use_container_width=True)
+
+        with st.expander("💡 Chart Purpose & Key Analytical Takeaways (Historical Extremes & Price Trajectories)", expanded=False):
+            st.markdown("""
+            - **Primary Objective:** Screen for tail-risk positioning overextension ($|Z| \ge 2.0\sigma$ or Percentile $>90\%$ / $<10\%$) and map the subsequent price path.
+            - **Crowded Long Reversal Risk ($Z \ge +2.0\sigma$):** Speculators have exhausted their buying power; any negative fundamental headline can trigger cascading long stop-outs.
+            - **Exhaustion Low / Capitulation ($Z \le -2.0\sigma$):** Speculative shorts are heavily crowded; downside momentum is saturated, creating favorable asymmetry for sharp relief rallies or bottoms.
+            """)
 
         lat_z = src_df[z_col].iloc[-1]
         lat_pct = src_df[pct_col].iloc[-1]

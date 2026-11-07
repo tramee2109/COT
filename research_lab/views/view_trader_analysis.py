@@ -224,6 +224,14 @@ def render_trader_analysis(market_df, report_family_name, commodity_label, price
         )
         st.plotly_chart(fig_ls, use_container_width=True)
 
+        with st.expander("💡 Chart Purpose & Key Analytical Takeaways (Gross Positions & Net Exposure)", expanded=False):
+            st.markdown(f"""
+            - **Primary Objective:** Track whether shifts in Net Exposure are driven by **true capital expansion** (fresh Gross Long buying) or **forced short covering** (shorts exiting), and observe contemporaneous alignment with physical price.
+            - **Trend Confirmation:** When price rises accompanied by expanding Gross Longs and rising Net Position, the rally is supported by institutional capital inflow.
+            - **Exhaustion Warning:** If Net Position reaches multi-year highs while Gross Long growth flattens out, upside fuel is depleting.
+            - **Short Squeeze Vulnerability:** When Gross Shorts remain heavily elevated and price begins breaking upward, involuntary short covering can rapidly accelerate upward price spikes.
+            """)
+
         # 2. Trader Counts and Participation Share
         st.subheader("2. Breadth of Participation & Historical Market Share (% of OI)")
         
@@ -376,6 +384,14 @@ def render_trader_analysis(market_df, report_family_name, commodity_label, price
         )
         st.plotly_chart(fig_comp, use_container_width=True)
 
+        with st.expander("💡 Chart Purpose & Key Analytical Takeaways (Cross-Category Comparison)", expanded=False):
+            st.markdown("""
+            - **Primary Objective:** Compare net directional stances across all major market cohorts on a standardized basis (% of Open Interest) alongside price behavior.
+            - **Mirror Hedging Dynamics:** In a healthy commodity market, Managed Money (Speculators) and Producer/Merchant (Hedgers) naturally take opposite sides of the market (mirror pattern).
+            - **Crowded Liquidity Trap:** When Managed Money reaches peak net long (% OI) while Producers are holding record net short hedges, physical producers are locking in peak forward selling, creating strong overhead price resistance.
+            - **Price Divergence:** If prices continue rising while speculative % OI begins rolling over, the rally is losing institutional liquidity support.
+            """)
+
         # ─────────────────────────────────────────────────────────────────────
         # 1. POSITIONING DIVERGENCE PANEL
         # ─────────────────────────────────────────────────────────────────────
@@ -467,6 +483,13 @@ def render_trader_analysis(market_df, report_family_name, commodity_label, price
             fig_div.update_yaxes(title_text="% of Total OI", row=1, col=1)
             fig_div.update_yaxes(title_text="Z-Score (σ)", row=2, col=1)
             st.plotly_chart(fig_div, use_container_width=True)
+
+            with st.expander("💡 Chart Purpose & Key Analytical Takeaways (Positioning Divergence)", expanded=False):
+                st.markdown("""
+                - **Primary Objective:** Measure the structural gap ($Wedge = Pos_{Spec} - Pos_{Hedger}$) between leveraged momentum traders and physical producers.
+                - **Extreme Elasticity ($Z \ge +2.0\sigma$):** Speculators are stretched to historical extremes while producers have hedged maximum physical inventory. Historically marks high probability of violent trend exhaustion or mean reversion.
+                - **Equilibrium Recovery ($|Z| < 1.0\sigma$):** Market positioning is well-balanced, allowing physical supply/demand fundamentals to dictate price without positioning squeeze distortions.
+                """)
 
         # ─────────────────────────────────────────────────────────────────────
         # 2. MULTI-HORIZON ROLLING CORRELATION PANEL
@@ -566,6 +589,13 @@ def render_trader_analysis(market_df, report_family_name, commodity_label, price
                 legend=dict(orientation='h', y=1.05, x=0)
             )
             st.plotly_chart(fig_corr, use_container_width=True)
+
+            with st.expander("💡 Chart Purpose & Key Analytical Takeaways (Multi-Horizon Rolling Correlation)", expanded=False):
+                st.markdown("""
+                - **Primary Objective:** Track whether the liquidity relationship between trader groups remains stable or undergoes structural breakdown across multiple time horizons (13W Tactical, 26W Medium-term, 52W Structural).
+                - **Healthy Negative Offset ($r \in [-0.7, -1.0]$):** Indicates classic market functioning where commercial hedgers absorb speculative liquidity seamlessly.
+                - **Regime Decoupling ($r \rightarrow 0$ or $r > 0$):** If the 13W correlation suddenly flips positive while 52W is deeply negative, both groups are moving in the same direction, warning of abnormal macro shocks or sudden liquidity imbalances.
+                """)
 
         st.markdown("""
         **Institutional Co-Movement Principles:**
