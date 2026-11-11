@@ -24,4 +24,13 @@ docs/audit/
 # User guides & personal documentation
 HUONG_DAN_*.md
 
+# Local Vietnamese research edition (Do not push to git)
+*_vn.py
+*_vn/
+*vietnamese*
+run_research_lab_vn.py
+start_vn.bat
+research_lab_vn/
+
+
 
