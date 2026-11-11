@@ -60,6 +60,7 @@ from research_lab.views.view_evaluation import render_evaluation
 from research_lab.views.view_knowledge import render_knowledge_base
 from research_lab.views.view_reports import render_reports
 from research_lab.views.view_data_center import render_data_center
+from research_lab.views.view_copper_foundation import render_copper_foundation
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 1. DATA INGESTION & REGISTRY INITIALIZATION (CACHED)
@@ -90,7 +91,8 @@ MODULES = [
     "6. COT & Price Relationship Lab",
     "7. Applications & Knowledge Base",
     "8. Research Report Workspace",
-    "9. Data Center & Export Hub"
+    "9. Data Center & Export Hub",
+    "10. Copper Research Foundation"
 ]
 
 selected_module = st.sidebar.radio("Navigation:", MODULES, index=0)
@@ -190,4 +192,7 @@ elif selected_module == "8. Research Report Workspace":
 
 elif selected_module == "9. Data Center & Export Hub":
     render_data_center(market_df, report_family_name, commodity_label, price_df, df_disagg, df_tff)
+
+elif selected_module == "10. Copper Research Foundation":
+    render_copper_foundation(market_df, report_family_name, commodity_label, price_df)
 
