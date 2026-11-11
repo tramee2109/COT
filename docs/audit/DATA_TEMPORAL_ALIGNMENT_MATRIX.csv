@@ -1,0 +1,9 @@
+dataset_name,observation_freq,observation_cutoff,public_release_time,publication_lag_days,permissible_return_anchor,lookahead_risk
+CFTC Disaggregated COT,Weekly,Tuesday 17:00 EST,Friday 15:30 EST,3,Monday Open / Friday Close Forward,Severe if using Tuesday Close to predict Tuesday price
+LME Commitments of Position (CoP),Weekly,Friday 17:00 London,Tuesday 13:00 London,2,Wednesday Open Forward,Severe if using Friday price for Tuesday release
+LME Daily Stock Movement Summary,Daily,Daily 08:00 London,Daily 09:00 London,0,Same-day London Close / Next-day Open,Low; 1-hour intraday lag
+SHFE Weekly Deliverable Stockpile,Weekly,Friday 15:00 Beijing,Friday 16:00 Beijing,0,Next Monday Open Forward,Low; published after Chinese market close
+COMEX Daily Warehouse Stock Bulletin,Daily,Daily 15:00 EST,Daily 16:30 EST,0,T+1 Open Forward,Low; released post-pit settlement
+ICSG World Copper Balance,Monthly / Annual,Month-End Actual,T+60 to T+90 Days post period,75,Exact release date (available_at) forward,EXTREME if using period_year instead of release_date
+FRED 10Y Real Yield (DFII10),Daily,Daily 16:00 EST,T+1 08:00 EST,1,T+1 Open Forward,Minimal
+CME Continuous Copper Price (HG=F),Daily,Daily 17:00 EST,Daily 17:30 EST,0,Base Price Series,Benchmark
