@@ -21,3 +21,7 @@ data_disaggregated/*.csv
 # Local audit deliverables & validation matrices
 docs/audit/
 
+# User guides & personal documentation
+HUONG_DAN_*.md
+
+
