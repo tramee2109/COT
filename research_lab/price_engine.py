@@ -217,7 +217,7 @@ def align_cot_and_price(cot_df, commodity_name, convention="publication_aware"):
         ),
         left_on='date_tuesday_ns',
         right_on='date_ns',
-        direction='nearest'
+        direction='backward'
     ).drop(columns=['date_ns'])
 
     # 2. Merge Friday publication price (tradable public availability anchor)
@@ -229,7 +229,7 @@ def align_cot_and_price(cot_df, commodity_name, convention="publication_aware"):
         ),
         left_on='date_pub_ns',
         right_on='date_ns',
-        direction='nearest'
+        direction='backward'
     ).drop(columns=['date_ns'])
 
     # Weekly Contemporaneous Price Return (Tuesday to Tuesday)

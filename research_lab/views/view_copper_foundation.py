@@ -36,6 +36,9 @@ def render_copper_foundation(market_df, report_family_name, commodity_label, pri
         st.warning(f"⚠️ Currently active market is '{commodity_label}'. Please switch to **Copper** in the sidebar to activate the Copper Research Foundation.")
         return
 
+    # Calculate canonical trader metrics for the selected report family (DEF-1.1-01 fix)
+    market_df = compute_trader_metrics(market_df, report_family_name)
+
     # Data Alignment with Zero Lookahead
     with st.spinner("Constructing Publication-Aware Copper Multi-Layer Research Dataset..."):
         aligned_df = align_copper_price_cot_macro_fundamentals(market_df, price_df, convention="publication_aware")
