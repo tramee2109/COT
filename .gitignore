@@ -17,3 +17,7 @@ Thumbs.db
 
 # Large raw CSV files (Use high-performance Parquet format instead to stay within GitHub limits)
 data_disaggregated/*.csv
+
+# Local audit deliverables & validation matrices
+docs/audit/
+
