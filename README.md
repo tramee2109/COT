@@ -1,304 +1,278 @@
-# COT Analyzer Dashboard
+# COT RESEARCH LAB — GLOBAL COMMODITY INTELLIGENCE PLATFORM
+### Institutional Quantitative Workstation for Multi-Layer Commodity Research
 
-A Streamlit + Plotly dashboard for analyzing **CFTC Commitment of Traders (COT) Financial Futures** data, with Yahoo Finance price overlays for signal validation.
-
----
-
-## Project Structure
-
-```
-cto_analyze/
-├── app.py          # Streamlit dashboard application
-├── data/           # Downloaded yearly CSVs (cot_2010.csv … cot_2026.csv)
-├── cto.py          # Data download script (CFTC → data/)
-└── README.md       # This file
-```
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.35+-FF4B4B.svg)](https://streamlit.io)
+[![Plotly](https://img.shields.io/badge/Plotly-5.20+-3F4F75.svg)](https://plotly.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Zero-Lookahead](https://img.shields.io/badge/Temporal%20Audit-Zero--Lookahead%20Verified-brightgreen.svg)](#data-pipeline--architecture-flow)
 
 ---
 
-## Quick Start
+## 🎬 Live Interactive Interface Demo
 
-### 1. Download COT Data
+The **COT Research Lab** bridges COMEX continuous futures settlement prices with multi-report CFTC positioning, Federal Reserve (FRED) macro liquidity drivers, and International Copper Study Group (ICSG) physical supply-demand balances into a unified, publication-aware research environment.
 
-```bash
-cd /Users/leoinv/Documents/CODE
-../.venv/bin/python cto_analyze/cto.py
-```
-
-This downloads yearly ZIP files from CFTC for 2010–2026 and saves them as individual CSVs in `cto_analyze/data/`. Each file is self-contained and format-compatible.
-
-> **Re-run any time** to refresh data. The script will overwrite the yearly files with the latest weekly data.
-
-### 2. Launch the Dashboard
-
-```bash
-~/Documents/CODE/run_dashboard.sh
-```
-
-Or directly:
-
-```bash
-cd /Users/leoinv/Documents/CODE
-../.venv/bin/streamlit run cto_analyze/app.py
-```
-
-Dashboard opens at `http://localhost:8501`.
+![COT Research Lab Demo Animation](docs/images/cot_research_lab_demo.gif)
 
 ---
 
-## Data Source
+## 📸 Key Research Modules & Interfaces
 
-**CFTC Traders in Financial Futures (TFF) Report**
-- URL: `https://www.cftc.gov/files/dea/history/com_fin_txt_{YEAR}.zip`
-- Released every **Friday** for the prior Tuesday's close.
-- Coverage: All major CME, CBOT, ICE, and CBOE financial futures.
-- Format: `Combined` (futures + options combined positions).
+<div align="center">
 
-### Participant Categories
+### 1. Module 10 — Copper Research Foundation (Market Overview & Real-Time Telemetry)
+*Real-time cross-asset telemetry tracking COMEX Copper price, Managed Money Net positioning, Commercial Hedging, US 10Y Real Yield, Broad USD Index, and ICSG Refined Balance.*
+![Module 10 Telemetry Dashboard](docs/images/02_copper_foundation_overview.png)
 
-| Category | Who They Are | Behavior |
-|---|---|---|
-| **Dealer** | Banks, prime brokers | Hedgers — usually contrarian to the market |
-| **Asset Manager (AM)** | Pension funds, mutual funds | Trend followers — large, slow-moving |
-| **Leveraged Money (LM)** | Hedge funds, CTAs | Fast money — opportunistic, reactive |
-| **Other Reportable** | Other large traders | Mixed — corporate hedgers, etc. |
-| **Non-Reportable** | Retail traders | Small, usually wrong at extremes |
+### 2. Module 10 — 3-Panel Synchronized Price & Positioning Explorer
+*Three-panel synchronized time series displaying historical prices against cohort contract commitments and net % of Open Interest.*
+![Module 10 Price & Positioning Explorer](docs/images/03_copper_price_positioning.png)
+
+### 3. Module 10 — Positioning Dynamics & Historical Extremes
+*Standardized rolling Z-Score (σ) and Percentile rankings across 52W, 104W, 156W, and 260W lookback windows to flag extreme crowding regimes.*
+![Module 10 Positioning Dynamics](docs/images/04_copper_positioning_dynamics.png)
+
+### 4. Module 10 — Macro Driver Interactions (FRED Real Yields & Broad USD)
+*Dual-axis price overlay and empirical correlation matrices evaluating Copper sensitivity to global real capital opportunity costs and currency trade regimes.*
+![Module 10 Macro Dynamics](docs/images/05_copper_macro_sensitivity.png)
+
+### 5. Module 10 — Physical Supply-Demand Balances (ICSG Canonical Integration)
+*World refined copper production, usage, and apparent surplus/deficit respecting official historical release lags (`available_at`).*
+![Module 10 ICSG Fundamentals](docs/images/06_copper_icsg_fundamentals.png)
+
+### 6. Module 1 — Overview & Multi-Report Data Coverage
+*Unified registry across Disaggregated COT and Traders in Financial Futures (TFF), highlighting target metals with verified contract continuity.*
+![Module 1 Overview](docs/images/01_module1_overview.png)
+
+</div>
 
 ---
 
-## Methodology
+## 📌 Problem Statement & Strategic Objectives
 
-### Derived Metrics
+### 1. The Commodity Data Fragmentation Challenge
+Institutional commodity researchers face significant fragmentation across key data layers:
+- **Exchange Price Action:** Daily continuous futures settlement data from COMEX/NYMEX.
+- **Regulatory Positioning:** Weekly Commitment of Traders (COT) reports from the Commodity Futures Trading Commission (CFTC).
+- **Macroeconomic Liquidity:** Daily inflation-protected yields (`DFII10`) and trade-weighted dollar indices (`DTWEXBGS`) from the Federal Reserve Bank of St. Louis (FRED).
+- **Physical Market Fundamentals:** Monthly and annual balance sheets from specialized industry bodies such as the International Copper Study Group (ICSG) and USGS.
 
-All metrics are computed from raw CFTC position data. The formulas below exactly mirror what is implemented in `load_data()` in `app.py`.
+Historically, quantitative analysts either analyzed these datasets in isolated silos or used naive date-merges that introduced catastrophic **look-ahead bias**.
 
-#### 1. Net Position (per category)
+### 2. The Publication Lag & Zero-Lookahead Mandate
+Market data sources operate on fundamentally different reporting calendars and publication delays:
+- **CFTC COT:** Positions are measured at Tuesday's market close (Survey Date / As-of Date), but officially published on Friday afternoon at 15:30 EST (**$T + 3$ days publication lag**).
+- **FRED Broad USD Index:** Fed aggregates trade weights across 26 global currency partners, incurring a **2–3 business day compilation lag**.
+- **ICSG Fundamentals:** Official refined balances are released with a **60–90 day publication lag**.
 
-```
-AssetMgr_Net = Asset_Mgr_Long - Asset_Mgr_Short
-LevMoney_Net = Lev_Money_Long - Lev_Money_Short
-Dealer_Net   = Dealer_Long    - Dealer_Short
-NonRept_Net  = NonRept_Long   - NonRept_Short
-```
+> **Zero-Lookahead Guarantee:** Any quantitative test that uses Tuesday's positioning to explain Tuesday's price return commits look-ahead bias. The COT Research Lab strictly enforces **Publication-Aware Alignment**: positioning data is anchored to the Friday publication close (`price_publication`), and all forward return calculations ($1\text{W}, 2\text{W}, 4\text{W}, 8\text{W}, 13\text{W}$) strictly originate *after* the public availability cutoff.
 
-**Interpretation:** Positive = net long (bullish bias), Negative = net short (bearish bias).
+### 3. Institutional Governance Scope
+This platform is an analytical, econometric, and diagnostic research workstation.
+- ❌ **STRICTLY EXCLUDED:** Buy/sell signals, trade execution, broker APIs, portfolio sizing, automated black-box trading, and investment advisory recommendations.
+- ✅ **CORE FOCUS:** Hypothesis testing, empirical return distributions, liquidity tail-risk diagnostics, and cross-asset structural elasticity research.
 
-#### 2. Combined Smart Money Net (Net_Spec)
+---
 
-```
-Net_Spec = AssetMgr_Net + LevMoney_Net
-```
+## 🏗️ Data Pipeline & Architecture Flow
 
-**Rationale:** Asset Managers and Leveraged Money together represent the "speculative" (directional) market participants. Dealers are excluded because they are primarily hedgers whose positions are structurally opposite to their clients.
+The system implements a four-tier architecture ensuring data lineage, deterministic reproducibility, and zero temporal leakage:
 
-#### 3. Net % of Open Interest (Net_Pct)
+```mermaid
+flowchart TD
+    subgraph S1["1. Raw Data Ingestion Layer"]
+        CFTC_D["CFTC Disaggregated COT (2018–2026)<br/>• Combined Futures & Options<br/>• Code: 085692 (Copper), 084691 (Silver)"]
+        CFTC_T["CFTC TFF Financial Futures<br/>• Asset Managers, Leveraged Money, Dealers"]
+        PRICES["Continuous Futures Daily Settlement<br/>• Parquet Feature Lakehouse & Yahoo Finance"]
+        FRED["Federal Reserve FRED API / CSV<br/>• DFII10 (10Y Real Yield)<br/>• DTWEXBGS (Trade-Weighted Broad USD)"]
+        ICSG["ICSG / USGS Canonical Fundamentals<br/>• Refined Production, Usage, Apparent Balance<br/>• Strict available_at Release Timestamps"]
+    end
 
-```
-Net_Pct = Net_Spec / Open_Interest_All
-```
+    subgraph S2["2. Normalization & Temporal Engine"]
+        NORM["Market Registry & Code Standardization<br/>• Regex Contract Matching & Zero-Padding<br/>• 7-Day Tuesday Frequency Verification"]
+        DECOMP["Trader Metrics Decomposition Engine<br/>• Net Positioning = Gross Long - Gross Short<br/>• Open Interest Standardization (% of OI)<br/>• Rolling Z-Scores (52W, 104W, 156W, 260W)<br/>• Historical Percentile Distribution Ranking"]
+        ASOF["Zero-Lookahead Temporal Alignment Engine<br/>• merge_asof(direction='backward')<br/>• Publication Anchor: Friday Release Date (T+3)<br/>• Macro & ICSG Backward Join via available_at"]
+    end
 
-**Why normalize by OI?** Raw contract numbers are not comparable across markets or even across time for the same market as OI scales up/down. Net_Pct gives a standardized [-1, +1] range that is directly comparable.
+    subgraph S3["3. Quantitative Research & Statistical Core"]
+        CORR["Multi-Horizon Correlation & Regressions<br/>• Pearson Linear & Spearman Monotonic Rank r<br/>• Lead-Lag Shift Mechanics (-12W to +12W)"]
+        FWD["Forward Return Distribution Engine<br/>• Lookahead-Safe Forward Trajectories (1W to 26W)<br/>• Crowding Tail-Risk Diagnostics (|Z| >= 2.0σ)"]
+        REGIME["Market Regime & Elasticity Diagnostic<br/>• Commercial Hedging Pressure vs Price Elasticity<br/>• Speculative Momentum vs Divergence Regimes"]
+    end
 
-#### 4. Directional Bias Signal
+    subgraph S4["4. Interactive Institutional UI (Streamlit)"]
+        M1["Module 1: Overview & Data Coverage"]
+        M2["Module 2: Market Explorer & Dictionary"]
+        M3["Module 3: Trader Behavior Analysis"]
+        M4["Module 4: Positioning Dynamics & Flow"]
+        M5["Module 5: Statistical Research & Tests"]
+        M6["Module 6: COT & Price Relationship Lab"]
+        M7["Module 7: Knowledge Base & Handbook"]
+        M8["Module 8: Research Report Workspace"]
+        M9["Module 9: Data Center & Export Hub"]
+        M10["Module 10: Copper Research Foundation (7 Tabs)"]
+    end
 
-```
-if Net_Pct >  threshold * 1.5  → "Strong Bull"
-if Net_Pct >  threshold        → "Bull"
-if Net_Pct < -threshold * 1.5  → "Strong Bear"
-if Net_Pct < -threshold        → "Bear"
-else                           → "Neutral"
-```
+    CFTC_D --> NORM
+    CFTC_T --> NORM
+    PRICES --> ASOF
+    FRED --> ASOF
+    ICSG --> ASOF
 
-> **Default threshold = 10%** (adjustable in the sidebar). "Strong" = 1.5× the threshold.
+    NORM --> DECOMP
+    DECOMP --> ASOF
+    ASOF --> CORR
+    ASOF --> FWD
+    ASOF --> REGIME
 
-#### 5. Crowding Index (Leveraged Money)
-
-```
-Crowding = LevMoney_Long / (LevMoney_Long + LevMoney_Short)
-```
-
-**Range:** 0 to 1 (displayed as 0%–100%).
-- `> 70%` → Crowded long — squeeze risk if price reverses.
-- `< 30%` → Crowded short — squeeze risk if price rallies.
-- `~50%` → Balanced positioning.
-
-> This is a pure Leveraged Money metric (hedge funds / CTAs), making it a reliable fast-money sentiment gauge.
-
-#### 6. Dealer Hedging Bias
-
-```
-Dealer_Bias = Dealer_Short - Dealer_Long
-```
-
-**Interpretation:** Dealers are structural hedgers — when this is **positive (high)**, dealers are net short, which typically means they are hedging large client long books → clients are bullish, creating a contrarian warning. When **negative**, dealers are net long, hedging client short books.
-
-> ⚠️ Dealer Bias is NOT a direct directional signal. It is a **contrarian confirmation** tool: extreme Dealer_Bias opposite to Net_Spec suggests positioning may be approaching an inflection point.
-
-#### 7. Week-over-Week Flow Changes (ΔAM, ΔLM, ΔDealer)
-
-```
-ΔAM     = AssetMgr_Net(t) - AssetMgr_Net(t-1)
-ΔLM     = LevMoney_Net(t) - LevMoney_Net(t-1)
-ΔDealer = Dealer_Net(t)   - Dealer_Net(t-1)
-```
-
-**Flow Signal Logic:**
-```
-ΔAM > 0 AND ΔLM > 0  → "Accumulation" (both smart money groups buying)
-ΔAM < 0 AND ΔLM < 0  → "Distribution" (both smart money groups selling)
-divergence            → "Divergence" (AM and LM disagree — unstable)
-```
-
-> Divergence between AM (slow, trend-following) and LM (fast, tactical) is often seen at turning points.
-
-#### 8. Z-Score (Positioning Extremes)
-
-```
-Z = (Net_Spec - rolling_mean(Net_Spec, N)) / rolling_std(Net_Spec, N)
-```
-
-**Default lookback window: 156 weeks (3 years)**, adjustable via the sidebar.
-
-**Interpretation:**
-```
-Z > +2  → Overbought (statistically extreme long positioning)
-Z < -2  → Oversold  (statistically extreme short positioning)
-```
-
-> Z-scores measure how many standard deviations current positioning sits above or below its own historical average. This is the most reliable "crowding" metric because it is fully context-adjusted per market.
-
-#### 9. OI Momentum
-
-```
-OI_Mom = Change_in_OI / Open_Interest
-```
-
-Computed but used contextually in signal generation. Rising OI validates trend conviction; falling OI suggests position unwinding.
-
-#### 10. Concentration Risk
-
-```
-Source: Conc_Gross_LE_4_TDR_Long_All, Conc_Gross_LE_4_TDR_Short_All
-        Conc_Gross_LE_8_TDR_Long_All, Conc_Gross_LE_8_TDR_Short_All
-```
-
-These CFTC-provided fields show what percentage of total long or short OI is controlled by the top 4 and top 8 largest traders.
-
-```
-> 60% → "High" concentration risk (squeeze potential)
-> 40% → "Medium" (watch closely)
-≤ 40% → "Normal"
+    CORR --> M5
+    CORR --> M6
+    CORR --> M10
+    FWD --> M6
+    FWD --> M10
+    REGIME --> M4
+    REGIME --> M10
+    NORM --> M1
+    NORM --> M2
+    DECOMP --> M3
+    DECOMP --> M8
+    DECOMP --> M9
 ```
 
 ---
 
-## Signal Logic (Active Signals Panel)
+## 📊 Modules & Capabilities Directory
 
-The **Active Signals** box in the drill-down section fires based on the most recent report week for the selected market:
-
-| Signal | Trigger Condition | Interpretation |
-|---|---|---|
-| 📈 Strong Trend | Rising OI + Net_Spec > 0 | New money entering, smart money is net long — trend likely continuing |
-| 🔄 Short Covering | Falling OI + Net_Spec > 0 | Smart money net long but OI declining — shorts being covered, not new longs |
-| 📉 Trend Weakening | Rising OI + Net_Spec < 0 | New money entering but smart money is net short — possible distribution |
-| ⚡ Contrarian Setup | Smart Money and Retail on opposite sides | Classic contrarian setup — retail has been historically wrong at extremes |
-| 🚨 Overbought | Z-Score > +2 | Positioning is statistically extreme long — watch for reversal |
-| 🚨 Oversold | Z-Score < -2 | Positioning is statistically extreme short — watch for squeeze |
-
-> **Note on "Strong Trend" vs "Short Covering":** The distinction between real accumulation and short covering is critical. Rising OI + bullish Net_Spec is a stronger, more durable signal. Falling OI + bullish Net_Spec indicates position liquidation (shorts covering), which can produce a violent but short-lived rally.
-
----
-
-## Dashboard Panels
-
-### Section 1: Global Market Overview
-
-- **📅 Report Week Selector** — Browse any historical CFTC report week. All panels in Section 1 update to that week's snapshot.
-- **A. Market Overview Table** — OI, ΔOI, Net Spec, Net %, Bias, Flow Signal, Concentration Risk for all spotlight markets side by side.
-- **B. Bias Heatmap** — 26-week rolling heatmap of Net_Pct across all spotlight markets. Green = net long, Red = net short. Useful for spotting cross-market rotation.
-- **D. Flow Momentum Table** — Weekly ΔAM, ΔLM, ΔDealer with Accumulation / Distribution / Divergence signal.
-- **F. Concentration Risk Table** — Top 4 and Top 8 trader concentration percentages for long and short sides.
-
-### Section 2: Market Drill-Down
-
-- **KPI Cards** — Open Interest, Net Smart Money, Net % of OI, Z-Score, Crowding Index.
-- **🧭 Active Signals** — Auto-fired signals based on latest data.
-- **C. Net Position Time Series** — Full history of AM Net, LM Net, and Combined Net (left Y-axis) with price overlay (right Y-axis, yellow dotted line from Yahoo Finance).
-- **G. Smart Money vs Retail** — Smart Money (AM+LM) vs Non-Reportable (retail) net positions with price overlay.
-- **B. Position Breakdown** — Latest week grouped bar chart showing Long / Short / Spread for all 4 participant categories.
-- **Dealer Bias** — Historical dealer net short bias. Spikes indicate large hedging activity (contrarian).
-- **E. Z-Score** — Full Z-score history with ±2σ bands and price overlay.
-- **OI + ΔOI** — Bar chart of open interest with weekly change overlay on secondary axis.
-- **Crowding Index** — LevMoney long share % over time with 30%/70% extreme lines.
+| Module | Purpose | Key Metrics & Methods |
+| :--- | :--- | :--- |
+| **1. Overview & Data Coverage** | System-wide observation audit and commodity spotlight. | Record counts, CFTC code validation, 7-day continuity check. |
+| **2. Market Explorer** | Interactive dictionary for 100+ commodity & financial contracts. | Exchange classification, reporting history, market lookup. |
+| **3. Trader Behavior Analysis** | Granular breakdown of Gross Longs, Gross Shorts, and Spreads. | Managed Money, Producer/Merchant, Swap Dealer, Other Reportables. |
+| **4. Positioning Dynamics** | Flow velocity and liquidity acceleration tracking. | Weekly flows ($\Delta$Net), 4W velocity, Crowding ratios. |
+| **5. Statistical Research** | Distribution testing and cross-commodity relative analysis. | Skewness, Kurtosis, Top-4/Top-8 concentration ratios. |
+| **6. COT & Price Lab** | Empirical lead-lag hypothesis testing and forward returns. | Forward return distributions ($1\text{W}$ to $26\text{W}$), event studies. |
+| **7. Knowledge Base** | Methodological institutional handbook with 10 quant topics. | Rationale, formulas, pitfalls, and analytical strengths. |
+| **8. Report Workspace** | Automated multi-page institutional briefing generation. | Executive summary generation, export-ready research notes. |
+| **9. Data Center** | Data governance, raw inspection, and high-speed export. | CSV / Parquet exports, metadata provenance verification. |
+| **10. Copper Foundation** | Comprehensive multi-layer integration for COMEX Copper (085692). | **7 Specialized Sub-Tabs** (Telemetry, Explorer, Dynamics, Macro, ICSG, Lab, Briefing). |
 
 ---
 
-## Price Data (Yahoo Finance)
-
-Price data is fetched via `yfinance` for supported instruments. It is cached per session.
-
-| COT Market | Yahoo Finance Ticker |
-|---|---|
-| EURO FX | 6E=F |
-| BRITISH POUND STERLING | 6B=F |
-| JAPANESE YEN | 6J=F |
-| CANADIAN DOLLAR | 6C=F |
-| AUSTRALIAN DOLLAR | 6A=F |
-| SWISS FRANC | 6S=F |
-| NZ DOLLAR | 6N=F |
-| MEXICAN PESO | 6M=F |
-| BRAZILIAN REAL | 6L=F |
-| USD INDEX | DX=F |
-| S&P 500 Consolidated | ES=F |
-| NASDAQ-100 Consolidated | NQ=F |
-| DJIA Consolidated | YM=F |
-| GOLD | GC=F |
-| CRUDE OIL | CL=F |
-| UST 10Y NOTE | ZN=F |
-| UST 5Y NOTE | ZF=F |
-| UST 2Y NOTE | ZT=F |
-| UST BOND | ZB=F |
-| ULTRA UST BOND | UB=F |
-| BITCOIN | BTC-USD |
-| ETHER | ETH-USD |
-| VIX FUTURES | VX=F |
-
-> If Yahoo Finance data is unavailable for a market, the chart silently renders without the price line.
-
----
-
-## Key Analytical Insights to Look For
-
-### High-Confidence Signals
-1. **Z-score > +2 AND Dealer_Bias rising sharply** → Crowded long + hedging pressure → high probability of short-term reversal.
-2. **Z-score < -2 AND Crowding < 30%** → Crowded short + LM fully positioned short → squeeze setup.
-3. **Net_Spec rising AND OI rising** → "Smart money conviction" — strongest trend signal.
-4. **Smart Money vs Retail divergence at extremes** → Retail is wrong at turning points historically.
-
-### Warning Signs
-- **Divergence Flow Signal** (AM buying, LM selling or vice versa) = regime uncertainty, wait for resolution.
-- **High concentration (>60%)** = a few large players dominate. Thin markets prone to gap moves if they exit.
-- **Falling OI while Net_Spec is at extremes** = unwinding, not new positioning — reliability decreases.
-
----
-
-## Settings (Sidebar)
-
-| Setting | Default | Effect |
-|---|---|---|
-| Z-Score Rolling Window | 156 weeks (3Y) | Longer = smoother baseline, fewer signals. Shorter = more sensitive. |
-| Bias Threshold | 10% | Net% of OI required to classify as Bull/Bear. Adjust per market volatility. |
-
----
-
-## Dependencies
+## 🗂️ Project Directory Structure
 
 ```
-streamlit
-plotly
-pandas
-numpy
-yfinance
+cot_research_lab_deploy/
+├── run_research_lab.py              # Primary Application Entry Point (10 Modules)
+├── start.bat                        # Production Windows One-Click Launcher
+├── requirements.txt                 # Application Dependencies
+├── README.md                        # Platform Documentation & Architecture Guide
+│
+├── research_lab/                    # Modular Quantitative Package
+│   ├── __init__.py
+│   ├── config.py                    # Contract mappings, hex color palette, constants
+│   ├── data_loader.py               # Cached ingestion for COT (Disagg/TFF) & continuous prices
+│   ├── market_registry.py           # Contract Market Code registry & coverage auditor
+│   ├── metrics_engine.py            # Trader decomposition, % OI, and rolling statistics
+│   ├── price_engine.py              # Zero-lookahead temporal alignment & forward returns
+│   ├── copper_foundation_service.py # Multi-layer integration: Price + COT + FRED + ICSG
+│   ├── knowledge_base.py            # Quantitative methodology handbook repository
+│   │
+│   └── views/                       # Streamlit UI Presentation Modules
+│       ├── __init__.py
+│       ├── view_overview.py         # Module 1: System Overview
+│       ├── view_explorer.py         # Module 2: Market Explorer & Dictionary
+│       ├── view_trader_analysis.py  # Module 3: Trader Behavior Analysis
+│       ├── view_positioning.py      # Module 4: Positioning Dynamics & Flow
+│       ├── view_statistics.py       # Module 5: Statistical Research & Tests
+│       ├── view_evaluation.py       # Module 6: COT & Price Relationship Lab
+│       ├── view_knowledge.py        # Module 7: Applications & Knowledge Base
+│       ├── view_reports.py          # Module 8: Research Report Workspace
+│       ├── view_data_center.py      # Module 9: Data Center & Export Hub
+│       └── view_copper_foundation.py# Module 10: Copper Research Foundation (7 Tabs)
+│
+├── data/                            # Verified Research Datasets
+│   ├── prices/                      # Daily continuous futures parquet lakehouse
+│   ├── macro/                       # FRED daily macro series (DFII10, DTWEXBGS)
+│   ├── fundamentals/                # ICSG / USGS canonical supply-demand parquet
+│   └── data_tff/                    # Historical Traders in Financial Futures (2010–2026)
+│
+└── docs/
+    └── images/                      # High-resolution screenshots & animated UI demo
+        ├── cot_research_lab_demo.gif
+        ├── 01_module1_overview.png
+        ├── 02_copper_foundation_overview.png
+        ├── 03_copper_price_positioning.png
+        ├── 04_copper_positioning_dynamics.png
+        ├── 05_copper_macro_sensitivity.png
+        ├── 06_copper_icsg_fundamentals.png
+        └── 07_copper_relationship_lab.png
 ```
 
-All installed in `/Users/leoinv/Documents/CODE/.venv`.
+---
+
+## ⚡ Quick Start Guide
+
+### Prerequisites
+- Python **3.10** or higher
+- Windows 10/11, macOS, or Linux
+
+### Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/tramee2109/COT.git
+   cd COT
+   ```
+
+2. **Create and activate a virtual environment:**
+   ```bash
+   python -m venv .venv
+   # Windows:
+   .venv\Scripts\activate
+   # macOS / Linux:
+   source .venv/bin/activate
+   ```
+
+3. **Install dependencies:**
+   ```bash
+   pip install --upgrade pip
+   pip install -r requirements.txt scipy statsmodels
+   ```
+
+### Running the Application
+
+* **Option A — One-Click (Windows):**
+  Double-click `start.bat`.
+
+* **Option B — Command Line:**
+  ```bash
+  streamlit run run_research_lab.py --server.port 8501
+  ```
+
+Open your browser at **`http://localhost:8501`** to access the research lab.
+
+---
+
+## 🔬 Core Quantitative Formulas
+
+### 1. Positioning Standardization
+$$\text{Net Position} = \text{Gross Long} - \text{Gross Short}$$
+$$\text{Net Position \% OI} = \left( \frac{\text{Net Position}}{\text{Total Open Interest}} \right) \times 100$$
+
+### 2. Rolling Z-Score ($\sigma$)
+$$Z_t = \frac{\text{Net}_t - \mu_{W}(t)}{\sigma_{W}(t)}$$
+*Where $W \in \{52, 104, 156, 260\}$ weeks; $|Z| \ge 2.0\sigma$ denotes statistical tail-risk crowding.*
+
+### 3. Historical Percentile Rank
+$$\text{Percentile}_t = \frac{\text{Net}_t - \min_{W}(t)}{\max_{W}(t) - \min_{W}(t)} \times 100\%$$
+
+### 4. Zero-Lookahead Forward Return
+$$R_{t \to t+h} = \frac{P_{\text{publication}, t+h}}{P_{\text{publication}, t}} - 1$$
+*Where $P_{\text{publication}, t}$ is the Friday closing settlement contemporaneous with public release.*
+
+---
+
+## 📜 Regulatory Disclaimer
+
+This software is strictly intended for institutional econometric research, academic inquiry, and educational purposes. Nothing contained herein constitutes investment advice, financial planning, a recommendation to buy or sell securities or commodities futures, or a solicitation of any trading action. All historical backtests, correlations, and event studies represent mathematical observations and do not guarantee future performance.
