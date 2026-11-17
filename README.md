@@ -77,41 +77,36 @@ This platform is an analytical, econometric, and diagnostic research workstation
 
 ## 🏗️ Data Pipeline & Architecture Flow
 
-The system implements a four-tier architecture ensuring data lineage, deterministic reproducibility, and zero temporal leakage:
+The platform implements a four-tier architecture ensuring data lineage, deterministic reproducibility, and zero temporal leakage:
 
 ```mermaid
 flowchart TD
-    subgraph S1["1. Raw Data Ingestion Layer"]
-        CFTC_D["CFTC Disaggregated COT (2018–2026)<br/>• Combined Futures & Options<br/>• Code: 085692 (Copper), 084691 (Silver)"]
-        CFTC_T["CFTC TFF Financial Futures<br/>• Asset Managers, Leveraged Money, Dealers"]
-        PRICES["Continuous Futures Daily Settlement<br/>• Parquet Feature Lakehouse & Yahoo Finance"]
-        FRED["Federal Reserve FRED API / CSV<br/>• DFII10 (10Y Real Yield)<br/>• DTWEXBGS (Trade-Weighted Broad USD)"]
-        ICSG["ICSG / USGS Canonical Fundamentals<br/>• Refined Production, Usage, Apparent Balance<br/>• Strict available_at Release Timestamps"]
+    subgraph S1 [1. Raw Data Ingestion Layer]
+        CFTC_D[CFTC Disaggregated COT]
+        CFTC_T[CFTC TFF Financial Futures]
+        PRICES[Continuous Futures Settlement]
+        FRED[FRED Macro Indicators]
+        ICSG[ICSG Physical Fundamentals]
     end
 
-    subgraph S2["2. Normalization & Temporal Engine"]
-        NORM["Market Registry & Code Standardization<br/>• Regex Contract Matching & Zero-Padding<br/>• 7-Day Tuesday Frequency Verification"]
-        DECOMP["Trader Metrics Decomposition Engine<br/>• Net Positioning = Gross Long - Gross Short<br/>• Open Interest Standardization (% of OI)<br/>• Rolling Z-Scores (52W, 104W, 156W, 260W)<br/>• Historical Percentile Distribution Ranking"]
-        ASOF["Zero-Lookahead Temporal Alignment Engine<br/>• merge_asof(direction='backward')<br/>• Publication Anchor: Friday Release Date (T+3)<br/>• Macro & ICSG Backward Join via available_at"]
+    subgraph S2 [2. Processing and Temporal Engine]
+        NORM[Contract Registry and Code Standardization]
+        DECOMP[Trader Positioning Decomposition Engine]
+        ASOF[Zero-Lookahead Temporal Alignment]
     end
 
-    subgraph S3["3. Quantitative Research & Statistical Core"]
-        CORR["Multi-Horizon Correlation & Regressions<br/>• Pearson Linear & Spearman Monotonic Rank r<br/>• Lead-Lag Shift Mechanics (-12W to +12W)"]
-        FWD["Forward Return Distribution Engine<br/>• Lookahead-Safe Forward Trajectories (1W to 26W)<br/>• Crowding Tail-Risk Diagnostics (|Z| >= 2.0σ)"]
-        REGIME["Market Regime & Elasticity Diagnostic<br/>• Commercial Hedging Pressure vs Price Elasticity<br/>• Speculative Momentum vs Divergence Regimes"]
+    subgraph S3 [3. Quantitative Analytics Core]
+        CORR[Multi-Horizon Correlation Engine]
+        FWD[Lookahead-Safe Forward Returns]
+        REGIME[Regime and Crowding Diagnostics]
     end
 
-    subgraph S4["4. Interactive Institutional UI (Streamlit)"]
-        M1["Module 1: Overview & Data Coverage"]
-        M2["Module 2: Market Explorer & Dictionary"]
-        M3["Module 3: Trader Behavior Analysis"]
-        M4["Module 4: Positioning Dynamics & Flow"]
-        M5["Module 5: Statistical Research & Tests"]
-        M6["Module 6: COT & Price Relationship Lab"]
-        M7["Module 7: Knowledge Base & Handbook"]
-        M8["Module 8: Research Report Workspace"]
-        M9["Module 9: Data Center & Export Hub"]
-        M10["Module 10: Copper Research Foundation (7 Tabs)"]
+    subgraph S4 [4. Institutional Streamlit UI]
+        M1[Modules 1-2: Overview and Registry]
+        M2[Modules 3-4: Trader Behavior and Dynamics]
+        M3[Modules 5-6: Statistics and Price Lab]
+        M4[Modules 7-9: Knowledge, Reports, Data Center]
+        M10[Module 10: Copper Research Foundation - 7 Tabs]
     end
 
     CFTC_D --> NORM
@@ -122,23 +117,33 @@ flowchart TD
 
     NORM --> DECOMP
     DECOMP --> ASOF
+
     ASOF --> CORR
     ASOF --> FWD
     ASOF --> REGIME
 
-    CORR --> M5
-    CORR --> M6
-    CORR --> M10
-    FWD --> M6
-    FWD --> M10
-    REGIME --> M4
-    REGIME --> M10
     NORM --> M1
-    NORM --> M2
-    DECOMP --> M3
-    DECOMP --> M8
-    DECOMP --> M9
+    DECOMP --> M2
+    CORR --> M3
+    FWD --> M3
+    REGIME --> M2
+    DECOMP --> M4
+
+    ASOF --> M10
+    CORR --> M10
+    FWD --> M10
+    REGIME --> M10
 ```
+
+### 📋 End-to-End Data Lineage Breakdown
+
+| Layer | Component | Inputs | Transformation & Outputs | Publication Lag & Constraints |
+| :--- | :--- | :--- | :--- | :--- |
+| **1. Ingestion** | `data_loader.py` | CFTC Raw Files, Yahoo/Parquet Prices, FRED API, ICSG Parquet | Ingests weekly COT, daily OHLCV prices, macro yields, and annual physical balance sheets into cached DataFrames. | Raw inputs preserved immutably; no synthetic filling. |
+| **2. Processing & Alignment** | `metrics_engine.py`<br/>`price_engine.py` | Raw COT & Prices | Computes Net Positioning ($\text{Long} - \text{Short}$), Open Interest standardization ($\% \text{ OI}$), rolling $Z$-scores, and performs `merge_asof(direction='backward')`. | **Zero-Lookahead Mandate:** Anchored to Friday publication cutoff ($T+3$); strictly prevents future information leakage. |
+| **3. Quantitative Analytics** | `copper_foundation_service.py` | Aligned Multi-Layer Dataset | Generates multi-horizon forward returns ($1\text{W}$ to $26\text{W}$), Pearson/Spearman correlation matrices, lead-lag shift scans, and extreme crowding diagnostics ($|Z| \ge 2.0\sigma$). | Forward returns strictly originate *after* public report availability. |
+| **4. Presentation** | Streamlit Modules `views/` | Processed Statistical Data | Renders interactive Plotly 3-panel overlays, macro dual-axis charts, OLS regression scatterplots, and automated research briefings across 10 modules. | Analytical only; no automated order execution or trade signals. |
+
 
 ---
 
