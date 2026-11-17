@@ -95,7 +95,16 @@ MODULES = [
     "10. Copper Research Foundation"
 ]
 
-selected_module = st.sidebar.radio("Navigation:", MODULES, index=0)
+# Support deep-link query parameter ?mod=0..9
+try:
+    default_mod_idx = int(st.query_params.get("mod", 0))
+    if default_mod_idx < 0 or default_mod_idx >= len(MODULES):
+        default_mod_idx = 0
+except Exception:
+    default_mod_idx = 0
+
+selected_module = st.sidebar.radio("Navigation:", MODULES, index=default_mod_idx)
+
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### ⚙️ Global Research Context")
