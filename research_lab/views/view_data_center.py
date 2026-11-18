@@ -288,7 +288,7 @@ def render_data_center(market_df, report_family_name, commodity_label, price_df,
         with col_audit:
             st.markdown("#### 📜 Recent Sync Audit Logs (`sync_metadata`)")
             try:
-                df_logs = query_dataframe("SELECT source, timestamp, records_upserted, latest_record_date, status, message FROM sync_metadata ORDER BY id DESC LIMIT 10")
+                df_logs = query_dataframe("SELECT source, sync_timestamp, records_upserted, latest_data_date, status, message FROM sync_metadata ORDER BY id DESC LIMIT 10")
                 if not df_logs.empty:
                     st.dataframe(df_logs, use_container_width=True, hide_index=True)
                 else:

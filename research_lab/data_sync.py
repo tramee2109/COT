@@ -11,6 +11,7 @@ import io
 import zipfile
 import urllib.request
 import datetime
+import subprocess
 import pandas as pd
 import numpy as np
 
@@ -36,8 +37,40 @@ DATA_TFF_PQ = DATA_TFF_PATH.replace(".csv", ".parquet")
 MACRO_DIR = os.path.join(DEPLOY_ROOT, "data", "macro")
 
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
 }
+
+def fetch_bytes_resilient(url, referer=None, user_agent=None):
+    """
+    Downloads raw binary bytes from a URL using curl.exe if available,
+    falling back to urllib.request.
+    """
+    try:
+        cmd = [
+            'curl.exe', '-s', '-L',
+            '--no-progress-meter',
+            '--connect-timeout', '6',
+            '--max-time', '12'
+        ]
+        if user_agent:
+            cmd.extend(['-A', user_agent])
+        if referer:
+            cmd.extend(['-e', referer])
+        cmd.append(url)
+        res = subprocess.run(cmd, capture_output=True, stdin=subprocess.DEVNULL, timeout=15)
+        if res.returncode == 0 and len(res.stdout) > 50:
+            return res.stdout
+    except Exception:
+        pass
+
+    headers = {}
+    if user_agent:
+        headers['User-Agent'] = user_agent
+    if referer:
+        headers['Referer'] = referer
+    req = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        return resp.read()
 
 def sync_cftc_cot(year=None, verbose=True):
     """
@@ -55,9 +88,7 @@ def sync_cftc_cot(year=None, verbose=True):
         print(f"📥 [CFTC Disaggregated] Downloading {disagg_url}...")
 
     try:
-        req = urllib.request.Request(disagg_url, headers=HEADERS)
-        with urllib.request.urlopen(req, timeout=15) as response:
-            zip_bytes = response.read()
+        zip_bytes = fetch_bytes_resilient(disagg_url, referer="https://www.cftc.gov/MarketReports/CommitmentsofTraders/HistoricalCompressed/index.htm", user_agent=HEADERS['User-Agent'])
 
         with zipfile.ZipFile(io.BytesIO(zip_bytes)) as z:
             txt_filenames = [n for n in z.namelist() if n.endswith(('.txt', '.csv'))]
@@ -101,9 +132,7 @@ def sync_cftc_cot(year=None, verbose=True):
         print(f"📥 [CFTC TFF] Downloading {tff_url}...")
 
     try:
-        req = urllib.request.Request(tff_url, headers=HEADERS)
-        with urllib.request.urlopen(req, timeout=15) as response:
-            zip_bytes = response.read()
+        zip_bytes = fetch_bytes_resilient(tff_url, referer="https://www.cftc.gov/MarketReports/CommitmentsofTraders/HistoricalCompressed/index.htm", user_agent=HEADERS['User-Agent'])
 
         with zipfile.ZipFile(io.BytesIO(zip_bytes)) as z:
             txt_filenames = [n for n in z.namelist() if n.endswith(('.txt', '.csv'))]
@@ -170,7 +199,7 @@ def sync_commodity_prices(metals=["Copper", "Silver", "Platinum"], verbose=True)
 
         try:
             # Fetch last 90 days of daily data for fast incremental upsert
-            df_p = yf.download(ticker, period="3mo", interval="1d", progress=False, auto_adjust=True)
+            df_p = yf.download(ticker, period="3mo", interval="1d", progress=False, auto_adjust=True, timeout=10)
             if df_p.empty:
                 continue
 
@@ -233,9 +262,7 @@ def sync_fred_macro(verbose=True):
         if verbose:
             print(f"💵 [FRED Macro] Fetching {sid} from {url}...")
         try:
-            req = urllib.request.Request(url, headers=HEADERS)
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                csv_bytes = resp.read()
+            csv_bytes = fetch_bytes_resilient(url, referer=None)
 
             df_s = pd.read_csv(io.BytesIO(csv_bytes))
             d_col = [c for c in df_s.columns if "date" in c.lower()][0]
@@ -247,7 +274,7 @@ def sync_fred_macro(verbose=True):
             df_s['value'] = pd.to_numeric(df_s[v_col], errors='coerce')
             df_s['series_id'] = sid
 
-            clean_df = df_s[['series_id', 'date', 'value']].dropna(subset=['value'])
+            clean_df = df_s[['series_id', 'date', 'value']].dropna(subset=['value']).tail(90)
             
             # Upsert into SQLite
             n_m = upsert_dataframe(
