@@ -8,6 +8,7 @@ import os
 import pandas as pd
 import numpy as np
 from datetime import datetime
+from research_lab.database import query_dataframe, DB_PATH
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEPLOY_ROOT = os.path.dirname(CURRENT_DIR)
@@ -19,8 +20,26 @@ CANONICAL_PARQUET = os.path.join(FUNDAMENTALS_DIR, "fundamental_latest.parquet")
 def load_canonical_fundamentals(metal="Copper"):
     """
     Loads verified canonical fundamental supply-demand observations (ICSG / WPIC / Silver Inst / USGS).
+    Pulls from SQLite database (icsg_fundamentals table) first, falling back to Parquet.
     Preserves exact publication dates, observation periods, units, and forecast flags.
     """
+    if os.path.exists(DB_PATH):
+        try:
+            sql = "SELECT * FROM icsg_fundamentals"
+            params = []
+            if metal:
+                sql += " WHERE metal = ?"
+                params.append(metal)
+            df = query_dataframe(sql, tuple(params))
+            if not df.empty:
+                if "publication_date" in df.columns:
+                    df["publication_date"] = pd.to_datetime(df["publication_date"])
+                if "available_at" in df.columns:
+                    df["available_at"] = pd.to_datetime(df["available_at"])
+                return df.sort_values(["period_year", "metric"]).reset_index(drop=True)
+        except Exception:
+            pass
+
     if not os.path.exists(CANONICAL_PARQUET):
         # Fallback to adjacent directory if not yet copied
         alt_path = r"E:\My\the20\test_strategy\commodity_source\commodity_equilibrium\06_canonical\fundamental_latest.parquet"
@@ -49,6 +68,7 @@ def load_fred_macro_series():
     - DGS10: US 10-Year Nominal Yield (%)
     - T10YIE: US 10-Year Breakeven Inflation Rate (%)
     - DTWEXBGS: Nominal Broad U.S. Dollar Index (NOT ICE DXY)
+    Pulls from SQLite macro_indicators table first, falling back to CSV.
     """
     series_map = {
         "DFII10": ("macro__fred__us_10y_real_yield__DFII10__daily.csv", "us_10y_real_yield"),
@@ -56,6 +76,21 @@ def load_fred_macro_series():
         "T10YIE": ("macro__fred__us_10y_breakeven_inflation__T10YIE__daily.csv", "us_10y_breakeven_inflation"),
         "DTWEXBGS": ("macro__fred__trade_weighted_usd_broad__DTWEXBGS__daily.csv", "nominal_broad_usd_index")
     }
+
+    if os.path.exists(DB_PATH):
+        try:
+            code_col_map = {k: v[1] for k, v in series_map.items()}
+            sids_tuple = tuple(series_map.keys())
+            placeholders = ",".join(["?"] * len(sids_tuple))
+            df_macro = query_dataframe(f"SELECT series_id, date, value FROM macro_indicators WHERE series_id IN ({placeholders})", sids_tuple)
+            if not df_macro.empty:
+                df_macro['date'] = pd.to_datetime(df_macro['date'])
+                df_macro['clean_col'] = df_macro['series_id'].map(code_col_map)
+                piv = df_macro.pivot_table(index='date', columns='clean_col', values='value').reset_index()
+                piv.columns.name = None
+                return piv.sort_values('date').reset_index(drop=True)
+        except Exception:
+            pass
 
     merged_df = None
 

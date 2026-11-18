@@ -10,8 +10,11 @@ Permits interactive preview, filtering, and direct CSV / Parquet downloading of:
 import streamlit as st
 import pandas as pd
 import io
+import os
 from research_lab.metrics_engine import compute_trader_metrics, compute_position_decomposition
 from research_lab.price_engine import align_cot_and_price, COT_PRICE_MARKET_REGISTRY
+from research_lab.database import get_database_stats, query_dataframe, DB_PATH
+from research_lab.data_sync import run_full_weekly_sync
 
 def render_data_center(market_df, report_family_name, commodity_label, price_df, df_disagg, df_tff):
     st.title(f"📥 Data Center & Export Hub — {commodity_label}")
@@ -25,7 +28,8 @@ def render_data_center(market_df, report_family_name, commodity_label, price_df,
         "📊 1. Weekly COT Positioning (Active Market)",
         "📈 2. Commodity Futures Settlement Prices",
         "🧪 3. Aligned Multi-Horizon Research Dataset",
-        "📦 4. Comprehensive Historical Archives"
+        "📦 4. Comprehensive Historical Archives",
+        "🗄️ 5. SQLite Warehouse & Weekly Sync Hub"
     ])
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -221,3 +225,87 @@ def render_data_center(market_df, report_family_name, commodity_label, price_df,
                     mime="application/octet-stream",
                     use_container_width=True
                 )
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # TAB 5: SQLITE WAREHOUSE & AUTOMATED WEEKLY SYNC HUB
+    # ─────────────────────────────────────────────────────────────────────────
+    with tabs[4]:
+        st.subheader("5. Relational SQLite Warehouse & Automated Weekly Data Sync Engine")
+        st.caption("Live relational database statistics, atomic upsert pipeline, and scheduled sync execution.")
+
+        stats = get_database_stats()
+        
+        # Top KPI Metrics
+        m_col1, m_col2, m_col3, m_col4 = st.columns(4)
+        with m_col1:
+            st.metric("Database Storage", f"{stats.get('size_mb', 0)} MB", delta="WAL Mode Active")
+        with m_col2:
+            total_records = sum(t.get('row_count', 0) for t in stats.get('tables', {}).values())
+            st.metric("Total Warehouse Records", f"{total_records:,}")
+        with m_col3:
+            st.metric("Active Tables", len(stats.get('tables', {})))
+        with m_col4:
+            st.metric("Database Status", "ONLINE ✅" if stats.get('exists') else "OFFLINE ⚠️")
+
+        st.markdown("---")
+
+        # Two-column layout: Table summary & Sync Trigger
+        col_tables, col_sync = st.columns([3, 2])
+
+        with col_tables:
+            st.markdown("#### 📋 Warehouse Tables & Date Range Summary")
+            tbl_rows = []
+            for t_name, t_info in stats.get('tables', {}).items():
+                tbl_rows.append({
+                    "Table Name": t_name,
+                    "Total Rows": f"{t_info.get('row_count', 0):,}",
+                    "Earliest Date": t_info.get('min_date') or "N/A",
+                    "Latest Date": t_info.get('max_date') or "N/A",
+                })
+            st.dataframe(pd.DataFrame(tbl_rows), use_container_width=True, hide_index=True)
+
+        with col_sync:
+            st.markdown("#### 🔄 Trigger Live Weekly Sync & Upsert")
+            st.info("""
+            **Automated Ingestion Pipeline:**
+            1. **CFTC Weekly COT:** Downloads latest zip, parses & upserts into `cot_disaggregated` and `cot_tff`.
+            2. **Daily Settlement Prices:** Fetches continuous futures (Copper, Silver, Platinum) & recalculates returns/volatility.
+            3. **FRED Macro Factors:** Updates daily US Real Yield, Broad USD, Nominal Yield, Breakeven Inflation.
+            """)
+
+            if st.button("🚀 Fetch & Upsert Latest Data Now", type="primary", use_container_width=True, key="btn_trigger_sync"):
+                with st.spinner("Executing multi-asset ingestion and atomic SQLite upsert..."):
+                    sync_res = run_full_weekly_sync(verbose=False)
+                    st.cache_data.clear()
+                    st.success(f"Pipeline executed successfully in {sync_res['elapsed_seconds']}s! Streamlit cache refreshed.")
+                    st.rerun()
+
+        st.markdown("---")
+
+        # Sync Audit Log & Scheduling Guide
+        col_audit, col_sched = st.columns([3, 2])
+
+        with col_audit:
+            st.markdown("#### 📜 Recent Sync Audit Logs (`sync_metadata`)")
+            try:
+                df_logs = query_dataframe("SELECT source, timestamp, records_upserted, latest_record_date, status, message FROM sync_metadata ORDER BY id DESC LIMIT 10")
+                if not df_logs.empty:
+                    st.dataframe(df_logs, use_container_width=True, hide_index=True)
+                else:
+                    st.caption("No sync logs recorded yet.")
+            except Exception as e:
+                st.warning(f"Could not load sync logs: {e}")
+
+        with col_sched:
+            st.markdown("#### ⏱️ Automation & Scheduling Guide")
+            st.markdown("""
+            **Windows Task Scheduler / Cron Automation:**
+            The repository includes automated execution scripts ready for headless scheduling:
+            
+            - **CLI Script:** `python sync_weekly_data.py`
+            - **Batch Launcher:** `sync_weekly_data.bat`
+            - **Recommended Schedule:** Run every **Saturday at 06:00 UTC** (shortly after the CFTC Friday 15:30 EST release).
+            
+            **Deterministic Idempotence:**
+            All ingestion runs use `INSERT INTO ... ON CONFLICT (...) DO UPDATE` upsert mechanics. Running multiple times is completely safe and guarantees zero duplicate records.
+            """)

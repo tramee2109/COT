@@ -21,6 +21,13 @@ data_disaggregated/*.csv
 # Local audit deliverables & validation matrices
 docs/audit/
 
+# SQLite databases (local persistence, do not push to git)
+*.db
+*.sqlite
+*.sqlite3
+data/sqlite/
+
+
 # User guides & personal documentation
 HUONG_DAN_*.md
 

@@ -12,6 +12,7 @@ from research_lab.config import (
     PRICES_PARQUET_PATH,
     TARGET_COMMODITIES
 )
+from research_lab.database import query_dataframe, DB_PATH
 
 DATA_DISAGG_PQ = DATA_DISAGG_PATH.replace(".csv", ".parquet")
 DATA_TFF_PQ = DATA_TFF_PATH.replace(".csv", ".parquet")
@@ -21,9 +22,19 @@ MACRO_DAILY_PQ = os.path.join(os.path.dirname(DATA_TFF_PATH), "macro_cot_daily_f
 def load_raw_disaggregated():
     """
     Loads raw Disaggregated COT dataset (Combined).
-    Loads Parquet format when available for sub-second read performance.
+    Loads directly from SQLite relational warehouse when available (with schema indexing),
+    falling back to Parquet or CSV.
     Guarantees raw data protection: returns copy, preserves original fields.
     """
+    if os.path.exists(DB_PATH):
+        try:
+            df = query_dataframe("SELECT * FROM cot_disaggregated ORDER BY contract_code_clean, report_date")
+            if not df.empty:
+                df['report_date'] = pd.to_datetime(df['report_date'], errors='coerce')
+                return df
+        except Exception:
+            pass
+
     if os.path.exists(DATA_DISAGG_PQ):
         df = pd.read_parquet(DATA_DISAGG_PQ)
     elif os.path.exists(DATA_DISAGG_PATH):
@@ -48,9 +59,18 @@ def load_raw_disaggregated():
 def load_raw_tff():
     """
     Loads raw Traders in Financial Futures (TFF) dataset.
-    Loads Parquet format when available for sub-second read performance.
+    Loads directly from SQLite warehouse when available, falling back to Parquet/CSV.
     Solves dual date column discrepancy (MM_DD_YYYY vs YYYY-MM-DD).
     """
+    if os.path.exists(DB_PATH):
+        try:
+            df = query_dataframe("SELECT * FROM cot_tff ORDER BY contract_code_clean, report_date")
+            if not df.empty:
+                df['report_date'] = pd.to_datetime(df['report_date'], errors='coerce')
+                return df
+        except Exception:
+            pass
+
     if os.path.exists(DATA_TFF_PQ):
         df = pd.read_parquet(DATA_TFF_PQ)
     elif os.path.exists(DATA_TFF_PATH):
@@ -74,9 +94,18 @@ def load_raw_tff():
 @st.cache_data(show_spinner=False)
 def load_verified_prices():
     """
-    Loads verified daily metals settlement prices from workspace:
-    daily_fundamental_features.parquet
+    Loads verified daily metals settlement prices from workspace.
+    Loads from SQLite commodity_prices table first, with Parquet fallback.
     """
+    if os.path.exists(DB_PATH):
+        try:
+            df = query_dataframe("SELECT * FROM commodity_prices ORDER BY metal, date")
+            if not df.empty:
+                df['date'] = pd.to_datetime(df['date'])
+                return df
+        except Exception:
+            pass
+
     if not os.path.exists(PRICES_PARQUET_PATH):
         return pd.DataFrame()
 
@@ -92,6 +121,14 @@ def load_macro_daily_features():
     """
     if os.path.exists(MACRO_DAILY_PQ):
         return pd.read_parquet(MACRO_DAILY_PQ)
+    elif os.path.exists(DB_PATH):
+        try:
+            df = query_dataframe("SELECT * FROM macro_indicators ORDER BY series_id, date")
+            if not df.empty:
+                df['date'] = pd.to_datetime(df['date'])
+                return df
+        except Exception:
+            pass
     return pd.DataFrame()
 
 def get_market_series(df, contract_code, market_name=None):

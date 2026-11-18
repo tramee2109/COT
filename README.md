@@ -259,6 +259,62 @@ Open your browser at **`http://localhost:8501`** to access the research lab.
 
 ---
 
+## 🗄️ Relational SQLite Warehouse & Automated Weekly Sync
+
+The platform features an embedded **relational SQLite warehouse (`data/sqlite/cot_warehouse.db`)** that stores all historical datasets with strict primary-key schemas, unique constraint indexing, and deterministic atomic upsert mechanics.
+
+```
+                    ┌─────────────────────────────────────────┐
+                    │      Weekly Data Fetcher Pipeline       │
+                    │  (CFTC Gov + Yahoo Finance + FRED Fed)  │
+                    └────────────────────┬────────────────────┘
+                                         │
+                             Atomic Upsert (ON CONFLICT)
+                                         ▼
+                    ┌─────────────────────────────────────────┐
+                    │      SQLite Relational Warehouse        │
+                    │       (data/sqlite/cot_warehouse.db)    │
+                    │  • cot_disaggregated (108,994 rows)     │
+                    │  • cot_tff (40,491 rows)                │
+                    │  • commodity_prices (20,976 rows)       │
+                    │  • macro_indicators (33,329 rows)       │
+                    │  • icsg_fundamentals (517 rows)         │
+                    │  • sync_metadata (Audit trail)          │
+                    └────────────────────┬────────────────────┘
+                                         │
+                         High-Performance Query Cache
+                                         ▼
+                    ┌─────────────────────────────────────────┐
+                    │     Streamlit 10-Module UI Platform     │
+                    │  (Interactive Analytics & Visualization)│
+                    └─────────────────────────────────────────┘
+```
+
+### 1. Database Schema & Tables
+- **`cot_disaggregated`**: 191+ attributes covering Producer/Merchant, Swap Dealers, Managed Money, and Other Reportables. Indexed on `(contract_code_clean, report_date)`.
+- **`cot_tff`**: 88 attributes covering Dealer/Intermediary, Asset Manager, Leveraged Money, and Other Reportables. Indexed on `(contract_code_clean, report_date)`.
+- **`commodity_prices`**: Continuous daily futures OHLCV prices, lookahead-safe daily returns, 20-day volatility, and 50-day moving average trend. Indexed on `(metal, date)`.
+- **`macro_indicators`**: Daily US 10Y Real Yield (`DFII10`), Trade-Weighted Broad USD (`DTWEXBGS`), Nominal Yield (`DGS10`), and Breakeven Inflation (`T10YIE`). Indexed on `(series_id, date)`.
+- **`icsg_fundamentals`**: World refined copper production, usage, and apparent balance with official publication release tags (`available_at`). Indexed on `(metal, period_year, metric)`.
+- **`sync_metadata`**: Full audit log capturing execution timestamps, row counts, source endpoints, and operational status.
+
+> **Note on Version Control:** The binary database file `*.db` is strictly excluded from Git via `.gitignore`. Users can instantiate or rebuild the local SQLite warehouse anytime by running:
+> ```bash
+> python research_lab/migrate_to_sqlite.py
+> ```
+
+### 2. Automated Weekly Ingestion
+New weekly CFTC COT reports are released every Friday at 15:30 EST. The lab provides three ways to pull fresh data and atomically upsert into SQLite:
+
+* **Interactive Streamlit Hub:** Navigate to **Module 9 ("Data Center & Export Hub") → Tab 5 ("SQLite Warehouse & Weekly Sync Hub")** and click `Fetch & Upsert Latest Data Now`.
+* **Automated Batch Script:** Double-click `sync_weekly_data.bat`.
+* **CLI / Scheduled Task:** Run `python sync_weekly_data.py` or register it in Windows Task Scheduler / Cron every Saturday morning at 06:00 UTC:
+  ```bash
+  python sync_weekly_data.py
+  ```
+
+---
+
 ## 🔬 Core Quantitative Formulas
 
 ### 1. Positioning Standardization
